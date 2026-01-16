@@ -1,0 +1,12 @@
+Order ID: 42 
+State: Ordered 
+OrderedDateTime: 2026-01-16 02:13:02 
+ProgressingDateTime:  
+CollectedDateTime: 
+CancelledDateTime: 
+Items:
+ 0001    Product 1          ( 3) £  30.00
+ 0002    Product 2          ( 2) £  40.00
+--------------------------------------------
+ Total                               £  70.00
+

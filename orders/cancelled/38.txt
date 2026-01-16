@@ -1,0 +1,11 @@
+Order ID: 38 
+State: Cancelled
+OrderedDateTime: 2026-01-16 02:08:39 
+ProgressingDateTime:  
+CollectedDateTime: 
+CancelledDateTime: 2026-01-16 02:09:11
+Items:
+ 0013    Laptop             ( 1) £ 599.99
+--------------------------------------------
+ Total                               £ 599.99
+
