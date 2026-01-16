@@ -1,0 +1,49 @@
+-------------------------------------------------------------------------------
+Test set: ci553.happyshop.client.customer.CustomerModelSearchTest
+-------------------------------------------------------------------------------
+Tests run: 4, Failures: 0, Errors: 4, Skipped: 0, Time elapsed: 0.359 s <<< FAILURE! -- in ci553.happyshop.client.customer.CustomerModelSearchTest
+ci553.happyshop.client.customer.CustomerModelSearchTest.testSearchByProductId -- Time elapsed: 0.349 s <<< ERROR!
+java.lang.ExceptionInInitializerError
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest$MockCustomerView.<init>(CustomerModelSearchTest.java:118)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest.setUp(CustomerModelSearchTest.java:42)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+Caused by: java.lang.IllegalStateException: Toolkit not initialized
+	at javafx.graphics@21.0.7/com.sun.javafx.application.PlatformImpl.runLater(PlatformImpl.java:436)
+	at javafx.graphics@21.0.7/com.sun.javafx.application.PlatformImpl.runLater(PlatformImpl.java:431)
+	at javafx.graphics@21.0.7/com.sun.javafx.application.PlatformImpl.setPlatformUserAgentStylesheet(PlatformImpl.java:724)
+	at javafx.graphics@21.0.7/com.sun.javafx.application.PlatformImpl.setDefaultPlatformUserAgentStylesheet(PlatformImpl.java:686)
+	at javafx.controls@21.0.7/javafx.scene.control.Control.<clinit>(Control.java:98)
+	... 5 more
+
+ci553.happyshop.client.customer.CustomerModelSearchTest.testEmptySearchInput -- Time elapsed: 0.002 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class javafx.scene.control.TextField
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest$MockCustomerView.<init>(CustomerModelSearchTest.java:118)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest.setUp(CustomerModelSearchTest.java:42)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread "main"]
+	... 5 more
+
+ci553.happyshop.client.customer.CustomerModelSearchTest.testSearchPrioritizesIdOverName -- Time elapsed: 0.001 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class javafx.scene.control.TextField
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest$MockCustomerView.<init>(CustomerModelSearchTest.java:118)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest.setUp(CustomerModelSearchTest.java:42)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread "main"]
+	... 5 more
+
+ci553.happyshop.client.customer.CustomerModelSearchTest.testSearchByProductName -- Time elapsed: 0.001 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class javafx.scene.control.TextField
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest$MockCustomerView.<init>(CustomerModelSearchTest.java:118)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest.setUp(CustomerModelSearchTest.java:42)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread "main"]
+	... 5 more
+

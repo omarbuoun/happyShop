@@ -1,0 +1,48 @@
+-------------------------------------------------------------------------------
+Test set: ci553.happyshop.orderManagement.OrderCancellationTest
+-------------------------------------------------------------------------------
+Tests run: 6, Failures: 0, Errors: 4, Skipped: 0, Time elapsed: 0.036 s <<< FAILURE! -- in ci553.happyshop.orderManagement.OrderCancellationTest
+ci553.happyshop.orderManagement.OrderCancellationTest.testCancelOrderInOrderedState -- Time elapsed: 0.020 s <<< ERROR!
+java.lang.NullPointerException: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updatePickerView(PickerModel.java:176)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updateOrderMap(PickerModel.java:148)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.notifyObservers(OrderHub.java:150)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.newOrder(OrderHub.java:113)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderCancellationTest.testCancelOrderInOrderedState(OrderCancellationTest.java:59)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+ci553.happyshop.orderManagement.OrderCancellationTest.testOrderStateChangesToCancelled -- Time elapsed: 0.004 s <<< ERROR!
+java.lang.NullPointerException: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updatePickerView(PickerModel.java:176)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updateOrderMap(PickerModel.java:148)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.notifyObservers(OrderHub.java:150)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.newOrder(OrderHub.java:113)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderCancellationTest.testOrderStateChangesToCancelled(OrderCancellationTest.java:120)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+ci553.happyshop.orderManagement.OrderCancellationTest.testStockRestorationOnCancellation -- Time elapsed: 0.003 s <<< ERROR!
+java.lang.NullPointerException: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updatePickerView(PickerModel.java:176)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updateOrderMap(PickerModel.java:148)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.notifyObservers(OrderHub.java:150)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.newOrder(OrderHub.java:113)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderCancellationTest.testStockRestorationOnCancellation(OrderCancellationTest.java:101)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+ci553.happyshop.orderManagement.OrderCancellationTest.testCancelOrderWithMultipleProducts -- Time elapsed: 0.002 s <<< ERROR!
+java.lang.NullPointerException: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updatePickerView(PickerModel.java:176)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updateOrderMap(PickerModel.java:148)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.notifyObservers(OrderHub.java:150)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.newOrder(OrderHub.java:113)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderCancellationTest.testCancelOrderWithMultipleProducts(OrderCancellationTest.java:144)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+

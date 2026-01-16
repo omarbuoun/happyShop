@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomerModel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.customer</a> &gt; <span class="el_source">CustomerModel.java</span></div><h1>CustomerModel.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.customer;
+
+import ci553.happyshop.catalogue.Order;
+import ci553.happyshop.catalogue.Product;
+import ci553.happyshop.storageAccess.DatabaseRW;
+import ci553.happyshop.orderManagement.OrderHub;
+import ci553.happyshop.utility.StorageLocation;
+import ci553.happyshop.utility.ProductListFormatter;
+import ci553.happyshop.service.TrolleyService;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * TODO
+ * You can either directly modify the CustomerModel class to implement the required tasks,
+ * or create a subclass of CustomerModel and override specific methods where appropriate.
+ */
+<span class="fc" id="L24">public class CustomerModel {</span>
+    private CustomerView cusView;
+    private DatabaseRW databaseRW; //Interface type, not specific implementation
+                                  //Benefits: Flexibility: Easily change the database implementation.
+
+    /**
+     * Sets the CustomerView for this model.
+     * @param cusView the CustomerView instance
+     */
+    public void setCusView(CustomerView cusView) {
+<span class="fc" id="L34">        this.cusView = cusView;</span>
+<span class="fc" id="L35">    }</span>
+
+    /**
+     * Gets the CustomerView associated with this model.
+     * @return the CustomerView instance
+     */
+    public CustomerView getCusView() {
+<span class="nc" id="L42">        return cusView;</span>
+    }
+
+    /**
+     * Sets the DatabaseRW for this model.
+     * @param databaseRW the DatabaseRW instance
+     */
+    public void setDatabaseRW(DatabaseRW databaseRW) {
+<span class="fc" id="L50">        this.databaseRW = databaseRW;</span>
+<span class="fc" id="L51">    }</span>
+
+    /**
+     * Gets the DatabaseRW associated with this model.
+     * @return the DatabaseRW instance
+     */
+    public DatabaseRW getDatabaseRW() {
+<span class="nc" id="L58">        return databaseRW;</span>
+    }
+
+<span class="fc" id="L61">    private Product theProduct =null; // product found from search</span>
+<span class="fc" id="L62">    private ArrayList&lt;Product&gt; trolley =  new ArrayList&lt;&gt;(); // a list of products in trolley</span>
+    private RemoveProductNotifier removeProductNotifier; // Notifier for insufficient stock products
+
+    // Four UI elements to be passed to CustomerView for display updates.
+<span class="fc" id="L66">    private String imageName = &quot;imageHolder.jpg&quot;;                // Image to show in product preview (Search Page)</span>
+<span class="fc" id="L67">    private String displayLaSearchResult = &quot;No Product was searched yet&quot;; // Label showing search result message (Search Page)</span>
+<span class="fc" id="L68">    private String displayTaTrolley = &quot;&quot;;                                // Text area content showing current trolley items (Trolley Page)</span>
+<span class="fc" id="L69">    private String displayTaReceipt = &quot;&quot;;                                // Text area content showing receipt after checkout (Receipt Page)</span>
+
+    //SELECT productID, description, image, unitPrice,inStock quantity
+    // Enhanced search: supports both product ID and name (like Warehouse client)
+    void search() throws SQLException {
+        // Get search keyword from either ID or Name field (prioritize ID if both are filled)
+<span class="nc" id="L75">        String searchKeyword = getCusView().tfId.getText().trim();</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if(searchKeyword.isEmpty()) {</span>
+<span class="nc" id="L77">            searchKeyword = getCusView().tfName.getText().trim();</span>
+        }
+        
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if(!searchKeyword.isEmpty()){</span>
+            // Use searchProduct() which searches by ID first, then by name if ID not found
+<span class="nc" id="L82">            ArrayList&lt;Product&gt; searchResults = databaseRW.searchProduct(searchKeyword);</span>
+            
+<span class="nc bnc" id="L84" title="All 4 branches missed.">            if(!searchResults.isEmpty() &amp;&amp; searchResults.get(0).getStockQuantity() &gt; 0){</span>
+                // For customer search, we'll use the first result (exact ID match takes priority)
+                // If multiple results from name search, show the first one
+<span class="nc" id="L87">                theProduct = searchResults.get(0);</span>
+                
+<span class="nc" id="L89">                double unitPrice = theProduct.getUnitPrice();</span>
+<span class="nc" id="L90">                String description = theProduct.getProductDescription();</span>
+<span class="nc" id="L91">                int stock = theProduct.getStockQuantity();</span>
+<span class="nc" id="L92">                String productId = theProduct.getProductId();</span>
+
+<span class="nc" id="L94">                String baseInfo = String.format(&quot;Product_Id: %s\n%s,\nPrice: £%.2f&quot;, productId, description, unitPrice);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">                String quantityInfo = stock &lt; 100 ? String.format(&quot;\n%d units left.&quot;, stock) : &quot;&quot;;</span>
+                
+                // If multiple results found (name search), inform the user
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                if(searchResults.size() &gt; 1) {</span>
+<span class="nc" id="L99">                    baseInfo += String.format(&quot;\n(%d more products found with similar name)&quot;, searchResults.size() - 1);</span>
+                }
+                
+<span class="nc" id="L102">                displayLaSearchResult = baseInfo + quantityInfo;</span>
+<span class="nc" id="L103">                System.out.println(displayLaSearchResult);</span>
+<span class="nc" id="L104">            }</span>
+<span class="nc bnc" id="L105" title="All 4 branches missed.">            else if(!searchResults.isEmpty() &amp;&amp; searchResults.get(0).getStockQuantity() &lt;= 0){</span>
+                // Product found but out of stock
+<span class="nc" id="L107">                theProduct = null;</span>
+<span class="nc" id="L108">                displayLaSearchResult = &quot;Product found but currently out of stock: &quot; + searchKeyword;</span>
+<span class="nc" id="L109">                System.out.println(&quot;Product found but out of stock: &quot; + searchKeyword);</span>
+            }
+            else{
+                // No products found
+<span class="nc" id="L113">                theProduct = null;</span>
+<span class="nc" id="L114">                displayLaSearchResult = &quot;No Product was found with ID/Name: &quot; + searchKeyword;</span>
+<span class="nc" id="L115">                System.out.println(&quot;No Product was found with ID/Name: &quot; + searchKeyword);</span>
+            }
+<span class="nc" id="L117">        }else{</span>
+<span class="nc" id="L118">            theProduct = null;</span>
+<span class="nc" id="L119">            displayLaSearchResult = &quot;Please type Product ID or Name to search&quot;;</span>
+<span class="nc" id="L120">            System.out.println(&quot;Please type Product ID or Name to search.&quot;);</span>
+        }
+<span class="nc" id="L122">        updateView();</span>
+<span class="nc" id="L123">    }</span>
+
+    void addToTrolley(){
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if(theProduct!= null){</span>
+            // Add the product to the trolley
+<span class="nc" id="L128">            trolley.add(theProduct);</span>
+            
+            // Merge duplicate products (combine quantities) and sort by product ID
+            // This keeps the trolley organized and prevents duplicate entries
+<span class="nc" id="L132">            trolley = TrolleyService.mergeAndSort(trolley);</span>
+            
+<span class="nc" id="L134">            displayTaTrolley = ProductListFormatter.buildString(trolley); //build a String for trolley so that we can show it</span>
+        }
+        else{
+<span class="nc" id="L137">            displayLaSearchResult = &quot;Please search for an available product before adding it to the trolley&quot;;</span>
+<span class="nc" id="L138">            System.out.println(&quot;must search and get an available product before add to trolley&quot;);</span>
+        }
+<span class="nc" id="L140">        displayTaReceipt=&quot;&quot;; // Clear receipt to switch back to trolleyPage (receipt shows only when not empty)</span>
+<span class="nc" id="L141">        updateView();</span>
+<span class="nc" id="L142">    }</span>
+
+    void checkOut() throws IOException, SQLException {
+<span class="nc" id="L145">        System.out.println(&quot;checkOut() called. Trolley size: &quot; + trolley.size()); // Debug output</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if(!trolley.isEmpty()){</span>
+            // Group the products in the trolley by productId to optimize stock checking
+            // Check the database for sufficient stock for all products in the trolley.
+            // If any products are insufficient, the update will be rolled back.
+            // If all products are sufficient, the database will be updated, and insufficientProducts will be empty.
+            // Note: If the trolley is already organized (merged and sorted), grouping is unnecessary.
+<span class="nc" id="L152">            ArrayList&lt;Product&gt; groupedTrolley= groupProductsById(trolley);</span>
+<span class="nc" id="L153">            System.out.println(&quot;Grouped trolley size: &quot; + groupedTrolley.size()); // Debug output</span>
+<span class="nc" id="L154">            ArrayList&lt;Product&gt; insufficientProducts= databaseRW.purchaseStocks(groupedTrolley);</span>
+<span class="nc" id="L155">            System.out.println(&quot;Insufficient products count: &quot; + insufficientProducts.size()); // Debug output</span>
+
+<span class="nc bnc" id="L157" title="All 2 branches missed.">            if(insufficientProducts.isEmpty()){ // If stock is sufficient for all products</span>
+<span class="nc" id="L158">                System.out.println(&quot;Stock is sufficient, creating order...&quot;); // Debug output</span>
+                // Close notifier window if it's showing from a previous insufficient stock situation
+<span class="nc bnc" id="L160" title="All 2 branches missed.">                if(removeProductNotifier != null) {</span>
+<span class="nc" id="L161">                    removeProductNotifier.closeNotifierWindow();</span>
+                }
+                
+                //get OrderHub and tell it to make a new Order
+<span class="nc" id="L165">                OrderHub orderHub =OrderHub.getOrderHub();</span>
+<span class="nc" id="L166">                Order theOrder = orderHub.newOrder(trolley);</span>
+<span class="nc" id="L167">                System.out.println(&quot;Order created with ID: &quot; + theOrder.getOrderId()); // Debug output</span>
+<span class="nc" id="L168">                trolley.clear();</span>
+<span class="nc" id="L169">                displayTaTrolley =&quot;&quot;;</span>
+<span class="nc" id="L170">                displayTaReceipt = String.format(</span>
+                        &quot;Order_ID: %s\nOrdered_Date_Time: %s\n%s&quot;,
+<span class="nc" id="L172">                        theOrder.getOrderId(),</span>
+<span class="nc" id="L173">                        theOrder.getOrderedDateTime(),</span>
+<span class="nc" id="L174">                        ProductListFormatter.buildString(theOrder.getProductList())</span>
+                );
+<span class="nc" id="L176">                System.out.println(&quot;Receipt generated:\n&quot; + displayTaReceipt); // Debug output</span>
+<span class="nc" id="L177">            }</span>
+            else{ // Some products have insufficient stock — remove them and notify the customer
+<span class="nc" id="L179">                System.out.println(&quot;Insufficient stock detected&quot;); // Debug output</span>
+                // Step 1: Remove products with insufficient stock from the trolley
+<span class="nc" id="L181">                removeInsufficientProductsFromTrolley(insufficientProducts);</span>
+                
+                // Step 2: Build error message for the notification
+<span class="nc" id="L184">                StringBuilder errorMsg = new StringBuilder();</span>
+<span class="nc" id="L185">                errorMsg.append(&quot;The following products were removed from your trolley due to insufficient stock:\n\n&quot;);</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">                for(Product p : insufficientProducts){</span>
+<span class="nc" id="L187">                    errorMsg.append(&quot;\u2022 &quot;+ p.getProductId()).append(&quot;, &quot;)</span>
+<span class="nc" id="L188">                            .append(p.getProductDescription()).append(&quot; (Only &quot;)</span>
+<span class="nc" id="L189">                            .append(p.getStockQuantity()).append(&quot; available, &quot;)</span>
+<span class="nc" id="L190">                            .append(p.getOrderedQuantity()).append(&quot; requested)\n&quot;);</span>
+<span class="nc" id="L191">                }</span>
+                
+                // Step 3: Update trolley display after removal
+<span class="nc" id="L194">                trolley = TrolleyService.mergeAndSort(trolley); // Re-organize trolley after removal</span>
+<span class="nc" id="L195">                displayTaTrolley = ProductListFormatter.buildString(trolley);</span>
+                
+                // Step 4: Show notification window using RemoveProductNotifier
+<span class="nc" id="L198">                initializeRemoveProductNotifierIfNeeded();</span>
+<span class="nc" id="L199">                removeProductNotifier.showRemovalMsg(errorMsg.toString());</span>
+                
+<span class="nc" id="L201">                theProduct=null;</span>
+<span class="nc" id="L202">                displayLaSearchResult = &quot;Some products were removed from your trolley. Please check the notification window.&quot;;</span>
+<span class="nc" id="L203">                System.out.println(&quot;stock is not enough - products removed from trolley&quot;);</span>
+            }
+<span class="nc" id="L205">        }</span>
+        else{
+<span class="nc" id="L207">            displayTaTrolley = &quot;Your trolley is empty&quot;;</span>
+<span class="nc" id="L208">            System.out.println(&quot;Your trolley is empty&quot;);</span>
+        }
+<span class="nc" id="L210">        System.out.println(&quot;Calling updateView()...&quot;); // Debug output</span>
+<span class="nc" id="L211">        updateView();</span>
+<span class="nc" id="L212">        System.out.println(&quot;updateView() completed&quot;); // Debug output</span>
+<span class="nc" id="L213">    }</span>
+
+    /**
+     * Groups products by their productId to optimize database queries and updates.
+     * By grouping products, we can check the stock for a given `productId` once, rather than repeatedly
+     */
+    private ArrayList&lt;Product&gt; groupProductsById(ArrayList&lt;Product&gt; proList) {
+<span class="nc" id="L220">        Map&lt;String, Product&gt; grouped = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        for (Product p : proList) {</span>
+<span class="nc" id="L222">            String id = p.getProductId();</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">            if (grouped.containsKey(id)) {</span>
+<span class="nc" id="L224">                Product existing = grouped.get(id);</span>
+<span class="nc" id="L225">                existing.setOrderedQuantity(existing.getOrderedQuantity() + p.getOrderedQuantity());</span>
+<span class="nc" id="L226">            } else {</span>
+                // Make a shallow copy to avoid modifying the original
+<span class="nc" id="L228">                grouped.put(id,new Product(p.getProductId(),p.getProductDescription(),</span>
+<span class="nc" id="L229">                        p.getProductImageName(),p.getUnitPrice(),p.getStockQuantity()));</span>
+            }
+<span class="nc" id="L231">        }</span>
+<span class="nc" id="L232">        return new ArrayList&lt;&gt;(grouped.values());</span>
+    }
+
+    void cancel(){
+<span class="nc" id="L236">        trolley.clear();</span>
+<span class="nc" id="L237">        displayTaTrolley=&quot;&quot;;</span>
+        // Close notifier window if it's showing
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        if(removeProductNotifier != null) {</span>
+<span class="nc" id="L240">            removeProductNotifier.closeNotifierWindow();</span>
+        }
+<span class="nc" id="L242">        updateView();</span>
+<span class="nc" id="L243">    }</span>
+    void closeReceipt(){
+<span class="nc" id="L245">        displayTaReceipt=&quot;&quot;;</span>
+<span class="nc" id="L246">    }</span>
+
+    void updateView() {
+<span class="nc bnc" id="L249" title="All 2 branches missed.">        if(theProduct != null){</span>
+<span class="nc" id="L250">            imageName = theProduct.getProductImageName();</span>
+<span class="nc" id="L251">            String relativeImageUrl = StorageLocation.imageFolder +imageName; //relative file path, eg images/0001.jpg</span>
+            // Get the full absolute path to the image
+<span class="nc" id="L253">            Path imageFullPath = Paths.get(relativeImageUrl).toAbsolutePath();</span>
+<span class="nc" id="L254">            imageName = imageFullPath.toUri().toString(); //get the image full Uri then convert to String</span>
+<span class="nc" id="L255">            System.out.println(&quot;Image absolute path: &quot; + imageFullPath); // Debugging to ensure path is correct</span>
+<span class="nc" id="L256">        }</span>
+        else{
+<span class="nc" id="L258">            imageName = &quot;imageHolder.jpg&quot;;</span>
+        }
+<span class="nc" id="L260">        getCusView().update(imageName, displayLaSearchResult, displayTaTrolley,displayTaReceipt);</span>
+<span class="nc" id="L261">    }</span>
+     // extra notes:
+     //Path.toUri(): Converts a Path object (a file or a directory path) to a URI object.
+     //File.toURI(): Converts a File object (a file on the filesystem) to a URI object
+
+    /**
+     * Removes products with insufficient stock from the trolley.
+     * This method identifies products that need to be removed by matching product IDs
+     * and removes them from the trolley list.
+     * 
+     * @param insufficientProducts List of products that have insufficient stock
+     */
+    private void removeInsufficientProductsFromTrolley(ArrayList&lt;Product&gt; insufficientProducts) {
+        // Create a set of product IDs to remove for efficient lookup
+<span class="nc" id="L275">        java.util.Set&lt;String&gt; idsToRemove = new java.util.HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        for(Product p : insufficientProducts) {</span>
+<span class="nc" id="L277">            idsToRemove.add(p.getProductId());</span>
+<span class="nc" id="L278">        }</span>
+        
+        // Remove products from trolley that match the insufficient product IDs
+<span class="nc" id="L281">        trolley.removeIf(product -&gt; idsToRemove.contains(product.getProductId()));</span>
+<span class="nc" id="L282">    }</span>
+    
+    /**
+     * Initializes the RemoveProductNotifier if it hasn't been created yet.
+     * This ensures the notifier is ready to display messages when needed.
+     */
+    private void initializeRemoveProductNotifierIfNeeded() {
+<span class="nc bnc" id="L289" title="All 2 branches missed.">        if(removeProductNotifier == null) {</span>
+<span class="nc" id="L290">            removeProductNotifier = new RemoveProductNotifier();</span>
+<span class="nc" id="L291">            removeProductNotifier.cusView = getCusView();</span>
+        }
+<span class="nc" id="L293">    }</span>
+
+    //for test only
+    public ArrayList&lt;Product&gt; getTrolley() {
+<span class="nc" id="L297">        return trolley;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

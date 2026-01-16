@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Main.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client</a> &gt; <span class="el_source">Main.java</span></div><h1>Main.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client;
+
+import ci553.happyshop.client.customer.*;
+
+import ci553.happyshop.client.emergency.EmergencyExit;
+import ci553.happyshop.client.orderTracker.OrderTracker;
+import ci553.happyshop.client.picker.PickerController;
+import ci553.happyshop.client.picker.PickerModel;
+import ci553.happyshop.client.picker.PickerView;
+
+import ci553.happyshop.client.warehouse.*;
+import ci553.happyshop.client.orderHistory.OrderHistoryView;
+import ci553.happyshop.orderManagement.OrderHub;
+import ci553.happyshop.storageAccess.DatabaseRW;
+import ci553.happyshop.storageAccess.DatabaseRWFactory;
+import javafx.application.Application;
+import javafx.stage.Stage;
+import java.io.IOException;
+
+/**
+ * The Main JavaFX application class. The Main class is executable directly.
+ * It serves as a foundation for UI logic and starts all the clients (UI) in one go.
+ *
+ * This class launches all standalone clients (Customer, Picker, OrderTracker, Warehouse, EmergencyExit)
+ * and links them together into a fully working system.
+ *
+ * It performs essential setup tasks, such as initializing the order map in the OrderHub
+ * and registering observers.
+ *
+ * Note: Each client type can be instantiated multiple times (e.g., calling startCustomerClient() as many times as needed)
+ * to simulate a multi-user environment, where multiple clients of the same type interact with the system concurrently.
+ *
+ * @version 1.0
+ * @author  Shine Shan University of Brighton
+ */
+
+<span class="nc" id="L37">public class Main extends Application {</span>
+
+    public static void main(String[] args) {
+<span class="nc" id="L40">        launch(args); // Launches the JavaFX application and calls the @Override start()</span>
+<span class="nc" id="L41">    }</span>
+
+    //starts the system
+    @Override
+    public void start(Stage window) throws IOException {
+<span class="nc" id="L46">        startCustomerClient();</span>
+<span class="nc" id="L47">        startPickerClient();</span>
+<span class="nc" id="L48">        startOrderTracker();</span>
+
+<span class="nc" id="L50">        startCustomerClient();</span>
+<span class="nc" id="L51">        startPickerClient();</span>
+<span class="nc" id="L52">        startOrderTracker();</span>
+
+        // Initializes the order map for the OrderHub. This must be called after starting the observer clients
+        // (such as OrderTracker and Picker clients) to ensure they are properly registered for receiving updates.
+<span class="nc" id="L56">        initializeOrderMap();</span>
+
+<span class="nc" id="L58">        startWarehouseClient();</span>
+<span class="nc" id="L59">        startWarehouseClient();</span>
+
+<span class="nc" id="L61">        startOrderHistoryView();</span>
+
+<span class="nc" id="L63">        startEmergencyExit();</span>
+<span class="nc" id="L64">    }</span>
+
+    /** The customer GUI -search prodduct, add to trolley, cancel/submit trolley, view receipt
+     *
+     * Creates the Model, View, and Controller objects, links them together so they can communicate with each other.
+     * Also creates the DatabaseRW instance via the DatabaseRWFactory and injects it into the CustomerModel.
+     * Starts the customer interface.
+     *
+     * Also creates the RemoveProductNotifier, which tracks the position of the Customer View
+     * and is triggered by the Customer Model when needed.
+     */
+    private void startCustomerClient(){
+<span class="nc" id="L76">        CustomerView cusView = new CustomerView();</span>
+<span class="nc" id="L77">        CustomerController cusController = new CustomerController();</span>
+<span class="nc" id="L78">        CustomerModel cusModel = new CustomerModel();</span>
+<span class="nc" id="L79">        DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();</span>
+
+<span class="nc" id="L81">        cusView.cusController = cusController;</span>
+<span class="nc" id="L82">        cusController.cusModel = cusModel;</span>
+<span class="nc" id="L83">        cusModel.setCusView(cusView);</span>
+<span class="nc" id="L84">        cusModel.setDatabaseRW(databaseRW);</span>
+<span class="nc" id="L85">        cusView.start(new Stage());</span>
+
+        //RemoveProductNotifier removeProductNotifier = new RemoveProductNotifier();
+        //removeProductNotifier.cusView = cusView;
+        //cusModel.removeProductNotifier = removeProductNotifier;
+<span class="nc" id="L90">    }</span>
+
+    /** The picker GUI, - for staff to pack customer's order,
+     *
+     * Creates the Model, View, and Controller objects for the Picker client.
+     * Links them together so they can communicate with each other.
+     * Starts the Picker interface.
+     *
+     * Also registers the PickerModel with the OrderHub to receive order notifications.
+     */
+    private void startPickerClient(){
+<span class="nc" id="L101">        PickerModel pickerModel = new PickerModel();</span>
+<span class="nc" id="L102">        PickerView pickerView = new PickerView();</span>
+<span class="nc" id="L103">        PickerController pickerController = new PickerController();</span>
+<span class="nc" id="L104">        pickerView.pickerController = pickerController;</span>
+<span class="nc" id="L105">        pickerController.pickerModel = pickerModel;</span>
+<span class="nc" id="L106">        pickerModel.setPickerView(pickerView);</span>
+<span class="nc" id="L107">        pickerModel.registerWithOrderHub();</span>
+<span class="nc" id="L108">        pickerView.start(new Stage());</span>
+<span class="nc" id="L109">    }</span>
+
+    //The OrderTracker GUI - for customer to track their order's state(Ordered, Progressing, Collected)
+    //This client is simple and does not follow the MVC pattern, as it only registers with the OrderHub
+    //to receive order status notifications. All logic is handled internally within the OrderTracker.
+    private void startOrderTracker(){
+<span class="nc" id="L115">        OrderTracker orderTracker = new OrderTracker();</span>
+<span class="nc" id="L116">        orderTracker.registerWithOrderHub();</span>
+<span class="nc" id="L117">    }</span>
+
+    //initialize the orderMap&lt;orderId, orderState&gt; for OrderHub during system startup
+    private void initializeOrderMap(){
+<span class="nc" id="L121">        OrderHub orderHub = OrderHub.getOrderHub();</span>
+<span class="nc" id="L122">        orderHub.initializeOrderMap();</span>
+<span class="nc" id="L123">    }</span>
+
+    /** The Warehouse GUI- for warehouse staff to manage stock
+     * Initializes the Warehouse client's Model, View, and Controller,and links them together for communication.
+     * It also creates the DatabaseRW instance via the DatabaseRWFactory and injects it into the Model.
+     * Once the components are linked, the warehouse interface (view) is started.
+     *
+     * Also creates the dependent HistoryWindow and AlertSimulator,
+     * which track the position of the Warehouse window and are triggered by the Model when needed.
+     * These components are linked after launching the Warehouse interface.
+     */
+    private void startWarehouseClient(){
+<span class="nc" id="L135">        WarehouseView view = new WarehouseView();</span>
+<span class="nc" id="L136">        WarehouseController controller = new WarehouseController();</span>
+<span class="nc" id="L137">        WarehouseModel model = new WarehouseModel();</span>
+<span class="nc" id="L138">        DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();</span>
+
+        // Link controller, model, and view and start view
+<span class="nc" id="L141">        view.controller = controller;</span>
+<span class="nc" id="L142">        controller.model = model;</span>
+<span class="nc" id="L143">        model.setView(view);</span>
+<span class="nc" id="L144">        model.setDatabaseRW(databaseRW);</span>
+<span class="nc" id="L145">        view.start(new Stage());</span>
+
+        //create dependent views that need window info
+<span class="nc" id="L148">        HistoryWindow historyWindow = new HistoryWindow();</span>
+<span class="nc" id="L149">        AlertSimulator alertSimulator = new AlertSimulator();</span>
+
+        // Link after start
+<span class="nc" id="L152">        model.setHistoryWindow(historyWindow);</span>
+<span class="nc" id="L153">        model.setAlertSimulator(alertSimulator);</span>
+<span class="nc" id="L154">        historyWindow.warehouseView = view;</span>
+<span class="nc" id="L155">        alertSimulator.warehouseView = view;</span>
+<span class="nc" id="L156">    }</span>
+
+    /** The Order History View - displays historical orders and analytics
+     * 
+     * Creates and starts the Order History View window, which shows:
+     * - All past orders (collected and cancelled)
+     * - Order statistics (total orders, revenue, cancellation rate, etc.)
+     * - Export functionality (CSV and JSON)
+     */
+    private void startOrderHistoryView(){
+<span class="nc" id="L166">        OrderHistoryView view = new OrderHistoryView();</span>
+<span class="nc" id="L167">        view.start(new Stage());</span>
+<span class="nc" id="L168">    }</span>
+
+    //starts the EmergencyExit GUI, - used to close the entire application immediatelly
+    private void startEmergencyExit(){
+<span class="nc" id="L172">        EmergencyExit.getEmergencyExit();</span>
+<span class="nc" id="L173">    }</span>
+}
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

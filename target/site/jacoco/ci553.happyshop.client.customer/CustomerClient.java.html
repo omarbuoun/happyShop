@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomerClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.customer</a> &gt; <span class="el_source">CustomerClient.java</span></div><h1>CustomerClient.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.customer;
+
+import ci553.happyshop.storageAccess.DatabaseRW;
+import ci553.happyshop.storageAccess.DatabaseRWFactory;
+import javafx.application.Application;
+import javafx.stage.Stage;
+
+/**
+ * A standalone Customer Client that can be run independently without launching the full system.
+ * Designed for early-stage testing, though full functionality may require other clients to be active.
+ */
+
+<span class="nc" id="L13">public class CustomerClient extends Application {</span>
+
+    public static void main(String[] args) {
+<span class="nc" id="L16">        launch(args);</span>
+<span class="nc" id="L17">    }</span>
+
+    /**
+     * Creates the Model, View, and Controller objects and links them together for communication.
+     * It also creates the DatabaseRW instance via the DatabaseRWFactory and injects it into the CustomerModel.
+     * Once the components are linked, the customer interface (view) is started.
+     *
+     * Also creates the RemoveProductNotifier, which tracks the position of the Customer View
+     * and is triggered by the Customer Model when needed.
+     */
+    @Override
+    public void start(Stage window) {
+<span class="nc" id="L29">        CustomerView cusView = new CustomerView();</span>
+<span class="nc" id="L30">        CustomerController cusController = new CustomerController();</span>
+<span class="nc" id="L31">        CustomerModel cusModel = new CustomerModel();</span>
+<span class="nc" id="L32">        DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();</span>
+
+<span class="nc" id="L34">        cusView.cusController = cusController;</span>
+<span class="nc" id="L35">        cusController.cusModel = cusModel;</span>
+<span class="nc" id="L36">        cusModel.setCusView(cusView);</span>
+<span class="nc" id="L37">        cusModel.setDatabaseRW(databaseRW);</span>
+<span class="nc" id="L38">        cusView.start(window);</span>
+
+        //RemoveProductNotifier removeProductNotifier = new RemoveProductNotifier();
+        //removeProductNotifier.cusView = cusView;
+        //cusModel.removeProductNotifier = removeProductNotifier;
+<span class="nc" id="L43">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

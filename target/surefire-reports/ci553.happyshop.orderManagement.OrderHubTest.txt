@@ -1,0 +1,86 @@
+-------------------------------------------------------------------------------
+Test set: ci553.happyshop.orderManagement.OrderHubTest
+-------------------------------------------------------------------------------
+Tests run: 8, Failures: 6, Errors: 2, Skipped: 0, Time elapsed: 0.032 s <<< FAILURE! -- in ci553.happyshop.orderManagement.OrderHubTest
+ci553.happyshop.orderManagement.OrderHubTest.testUnlockOrder -- Time elapsed: 0.005 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw exception: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHubTest.testUnlockOrder(OrderHubTest.java:112)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+ci553.happyshop.orderManagement.OrderHubTest.testGetFirstUnlockedOrderNoneAvailable -- Time elapsed: 0.002 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw exception: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHubTest.testGetFirstUnlockedOrderNoneAvailable(OrderHubTest.java:155)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+ci553.happyshop.orderManagement.OrderHubTest.testObserverRegistration -- Time elapsed: 0.004 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class javafx.scene.control.Control
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.orderTracker.OrderTracker.<init>(OrderTracker.java:39)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHubTest.testObserverRegistration(OrderHubTest.java:163)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.IllegalStateException: Toolkit not initialized [in thread "main"]
+	at javafx.graphics@21.0.7/com.sun.javafx.application.PlatformImpl.runLater(PlatformImpl.java:436)
+	at javafx.graphics@21.0.7/com.sun.javafx.application.PlatformImpl.runLater(PlatformImpl.java:431)
+	at javafx.graphics@21.0.7/com.sun.javafx.application.PlatformImpl.setPlatformUserAgentStylesheet(PlatformImpl.java:724)
+	at javafx.graphics@21.0.7/com.sun.javafx.application.PlatformImpl.setDefaultPlatformUserAgentStylesheet(PlatformImpl.java:686)
+	at javafx.controls@21.0.7/javafx.scene.control.Control.<clinit>(Control.java:98)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest$MockCustomerView.<init>(CustomerModelSearchTest.java:118)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest.setUp(CustomerModelSearchTest.java:42)
+	... 3 more
+
+ci553.happyshop.orderManagement.OrderHubTest.testLockOrder -- Time elapsed: 0.003 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw exception: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHubTest.testLockOrder(OrderHubTest.java:73)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+ci553.happyshop.orderManagement.OrderHubTest.testChangeOrderState -- Time elapsed: 0.002 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw exception: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHubTest.testChangeOrderState(OrderHubTest.java:188)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+ci553.happyshop.orderManagement.OrderHubTest.testGetFirstUnlockedOrder -- Time elapsed: 0.002 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw exception: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHubTest.testGetFirstUnlockedOrder(OrderHubTest.java:136)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+ci553.happyshop.orderManagement.OrderHubTest.testLockAlreadyLockedOrder -- Time elapsed: 0.002 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw exception: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHubTest.testLockAlreadyLockedOrder(OrderHubTest.java:92)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+ci553.happyshop.orderManagement.OrderHubTest.testNewOrder -- Time elapsed: 0.002 s <<< ERROR!
+java.lang.NullPointerException: Cannot invoke "ci553.happyshop.client.picker.PickerView.update(String, String)" because "this.pickerView" is null
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updatePickerView(PickerModel.java:176)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.picker.PickerModel.updateOrderMap(PickerModel.java:148)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.notifyObservers(OrderHub.java:150)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHub.newOrder(OrderHub.java:113)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.orderManagement.OrderHubTest.testNewOrder(OrderHubTest.java:50)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+

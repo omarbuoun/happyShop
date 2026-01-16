@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomerView.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.customer</a> &gt; <span class="el_source">CustomerView.java</span></div><h1>CustomerView.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.customer;
+
+import ci553.happyshop.utility.UIStyle;
+import ci553.happyshop.utility.WinPosManager;
+import ci553.happyshop.utility.WindowBounds;
+import javafx.event.ActionEvent;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
+import javafx.stage.Stage;
+
+import java.io.IOException;
+import java.sql.SQLException;
+
+/**
+ * The CustomerView is separated into two sections by a line :
+ *
+ * 1. Search Page – Always visible, allowing customers to browse and search for products.
+ * 2. the second page – display either the Trolley Page or the Receipt Page
+ *    depending on the current context. Only one of these is shown at a time.
+ */
+
+<span class="fc" id="L29">public class CustomerView  {</span>
+    public CustomerController cusController;
+
+<span class="fc" id="L32">    private final int WIDTH = UIStyle.customerWinWidth;</span>
+<span class="fc" id="L33">    private final int HEIGHT = UIStyle.customerWinHeight;</span>
+<span class="fc" id="L34">    private final int COLUMN_WIDTH = WIDTH / 2 - 10;</span>
+
+    private HBox hbRoot; // Top-level layout manager
+    private VBox vbTrolleyPage;  //vbTrolleyPage and vbReceiptPage will swap with each other when need
+    private VBox vbReceiptPage;
+
+    TextField tfId; //for user input on the search page. Made accessible so it can be accessed or modified by CustomerModel
+    TextField tfName; //for user input on the search page. Made accessible so it can be accessed by CustomerModel
+
+    //four controllers needs updating when program going on
+    private ImageView ivProduct; //image area in searchPage
+    private Label lbProductInfo;//product text info in searchPage
+    private TextArea taTrolley; //in trolley Page
+    private TextArea taReceipt;//in receipt page
+
+    // Holds a reference to this CustomerView window for future access and management
+    // (e.g., positioning the removeProductNotifier when needed).
+    private Stage viewWindow;
+
+    public void start(Stage window) {
+<span class="nc" id="L54">        VBox vbSearchPage = createSearchPage();</span>
+<span class="nc" id="L55">        vbTrolleyPage = CreateTrolleyPage();</span>
+<span class="nc" id="L56">        vbReceiptPage = createReceiptPage();</span>
+
+        // Create a divider line
+<span class="nc" id="L59">        Line line = new Line(0, 0, 0, HEIGHT);</span>
+<span class="nc" id="L60">        line.setStrokeWidth(4);</span>
+<span class="nc" id="L61">        line.setStroke(Color.PINK);</span>
+<span class="nc" id="L62">        VBox lineContainer = new VBox(line);</span>
+<span class="nc" id="L63">        lineContainer.setPrefWidth(4); // Give it some space</span>
+<span class="nc" id="L64">        lineContainer.setAlignment(Pos.CENTER);</span>
+
+<span class="nc" id="L66">        hbRoot = new HBox(10, vbSearchPage, lineContainer, vbTrolleyPage); //initialize to show trolleyPage</span>
+<span class="nc" id="L67">        hbRoot.setAlignment(Pos.CENTER);</span>
+<span class="nc" id="L68">        hbRoot.setStyle(UIStyle.rootStyle);</span>
+
+<span class="nc" id="L70">        Scene scene = new Scene(hbRoot, WIDTH, HEIGHT);</span>
+<span class="nc" id="L71">        window.setScene(scene);</span>
+<span class="nc" id="L72">        window.setTitle(&quot;🛒 HappyShop Customer Client&quot;);</span>
+<span class="nc" id="L73">        WinPosManager.registerWindow(window,WIDTH,HEIGHT); //calculate position x and y for this window</span>
+<span class="nc" id="L74">        window.show();</span>
+<span class="nc" id="L75">        viewWindow=window;// Sets viewWindow to this window for future reference and management.</span>
+<span class="nc" id="L76">    }</span>
+
+    private VBox createSearchPage() {
+<span class="nc" id="L79">        Label laPageTitle = new Label(&quot;Search by Product ID/Name&quot;);</span>
+<span class="nc" id="L80">        laPageTitle.setStyle(UIStyle.labelTitleStyle);</span>
+
+<span class="nc" id="L82">        Label laId = new Label(&quot;ID:      &quot;);</span>
+<span class="nc" id="L83">        laId.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L84">        tfId = new TextField();</span>
+<span class="nc" id="L85">        tfId.setPromptText(&quot;eg. 0001&quot;);</span>
+<span class="nc" id="L86">        tfId.setStyle(UIStyle.textFiledStyle);</span>
+<span class="nc" id="L87">        HBox hbId = new HBox(10, laId, tfId);</span>
+
+<span class="nc" id="L89">        Label laName = new Label(&quot;Name:&quot;);</span>
+<span class="nc" id="L90">        laName.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L91">        tfName = new TextField();</span>
+<span class="nc" id="L92">        tfName.setPromptText(&quot;eg. TV or Radio&quot;);</span>
+<span class="nc" id="L93">        tfName.setStyle(UIStyle.textFiledStyle);</span>
+<span class="nc" id="L94">        HBox hbName = new HBox(10, laName, tfName);</span>
+
+<span class="nc" id="L96">        Label laPlaceHolder = new Label(  &quot; &quot;.repeat(15)); //create left-side spacing so that this HBox aligns with others in the layout.</span>
+<span class="nc" id="L97">        Button btnSearch = new Button(&quot;Search&quot;);</span>
+<span class="nc" id="L98">        btnSearch.setStyle(UIStyle.buttonStyle);</span>
+<span class="nc" id="L99">        btnSearch.setOnAction(this::buttonClicked);</span>
+<span class="nc" id="L100">        Button btnAddToTrolley = new Button(&quot;Add to Trolley&quot;);</span>
+<span class="nc" id="L101">        btnAddToTrolley.setStyle(UIStyle.buttonStyle);</span>
+<span class="nc" id="L102">        btnAddToTrolley.setOnAction(this::buttonClicked);</span>
+<span class="nc" id="L103">        HBox hbBtns = new HBox(10, laPlaceHolder,btnSearch, btnAddToTrolley);</span>
+
+<span class="nc" id="L105">        ivProduct = new ImageView(&quot;imageHolder.jpg&quot;);</span>
+<span class="nc" id="L106">        ivProduct.setFitHeight(60);</span>
+<span class="nc" id="L107">        ivProduct.setFitWidth(60);</span>
+<span class="nc" id="L108">        ivProduct.setPreserveRatio(true); // Image keeps its original shape and fits inside 60×60</span>
+<span class="nc" id="L109">        ivProduct.setSmooth(true); //make it smooth and nice-looking</span>
+
+<span class="nc" id="L111">        lbProductInfo = new Label(&quot;Thank you for shopping with us.&quot;);</span>
+<span class="nc" id="L112">        lbProductInfo.setWrapText(true);</span>
+<span class="nc" id="L113">        lbProductInfo.setMinHeight(Label.USE_PREF_SIZE);  // Allow auto-resize</span>
+<span class="nc" id="L114">        lbProductInfo.setStyle(UIStyle.labelMulLineStyle);</span>
+<span class="nc" id="L115">        HBox hbSearchResult = new HBox(5, ivProduct, lbProductInfo);</span>
+<span class="nc" id="L116">        hbSearchResult.setAlignment(Pos.CENTER_LEFT);</span>
+
+<span class="nc" id="L118">        VBox vbSearchPage = new VBox(15, laPageTitle, hbId, hbName, hbBtns, hbSearchResult);</span>
+<span class="nc" id="L119">        vbSearchPage.setPrefWidth(COLUMN_WIDTH);</span>
+<span class="nc" id="L120">        vbSearchPage.setAlignment(Pos.TOP_CENTER);</span>
+<span class="nc" id="L121">        vbSearchPage.setStyle(&quot;-fx-padding: 15px;&quot;);</span>
+
+<span class="nc" id="L123">        return vbSearchPage;</span>
+    }
+
+    private VBox CreateTrolleyPage() {
+<span class="nc" id="L127">        Label laPageTitle = new Label(&quot;🛒🛒  Trolley 🛒🛒&quot;);</span>
+<span class="nc" id="L128">        laPageTitle.setStyle(UIStyle.labelTitleStyle);</span>
+
+<span class="nc" id="L130">        taTrolley = new TextArea();</span>
+<span class="nc" id="L131">        taTrolley.setEditable(false);</span>
+<span class="nc" id="L132">        taTrolley.setPrefSize(WIDTH/2, HEIGHT-50);</span>
+
+<span class="nc" id="L134">        Button btnCancel = new Button(&quot;Cancel&quot;);</span>
+<span class="nc" id="L135">        btnCancel.setOnAction(this::buttonClicked);</span>
+<span class="nc" id="L136">        btnCancel.setStyle(UIStyle.buttonStyle);</span>
+
+<span class="nc" id="L138">        Button btnCheckout = new Button(&quot;Check Out&quot;);</span>
+<span class="nc" id="L139">        btnCheckout.setOnAction(this::buttonClicked);</span>
+<span class="nc" id="L140">        btnCheckout.setStyle(UIStyle.buttonStyle);</span>
+
+<span class="nc" id="L142">        HBox hbBtns = new HBox(10, btnCancel,btnCheckout);</span>
+<span class="nc" id="L143">        hbBtns.setStyle(&quot;-fx-padding: 15px;&quot;);</span>
+<span class="nc" id="L144">        hbBtns.setAlignment(Pos.CENTER);</span>
+
+<span class="nc" id="L146">        vbTrolleyPage = new VBox(15, laPageTitle, taTrolley, hbBtns);</span>
+<span class="nc" id="L147">        vbTrolleyPage.setPrefWidth(COLUMN_WIDTH);</span>
+<span class="nc" id="L148">        vbTrolleyPage.setAlignment(Pos.TOP_CENTER);</span>
+<span class="nc" id="L149">        vbTrolleyPage.setStyle(&quot;-fx-padding: 15px;&quot;);</span>
+<span class="nc" id="L150">        return vbTrolleyPage;</span>
+    }
+
+    private VBox createReceiptPage() {
+<span class="nc" id="L154">        Label laPageTitle = new Label(&quot;Receipt&quot;);</span>
+<span class="nc" id="L155">        laPageTitle.setStyle(UIStyle.labelTitleStyle);</span>
+
+<span class="nc" id="L157">        taReceipt = new TextArea();</span>
+<span class="nc" id="L158">        taReceipt.setEditable(false);</span>
+<span class="nc" id="L159">        taReceipt.setPrefSize(WIDTH/2, HEIGHT-50);</span>
+
+<span class="nc" id="L161">        Button btnCloseReceipt = new Button(&quot;OK &amp; Close&quot;); //btn for closing receipt and showing trolley page</span>
+<span class="nc" id="L162">        btnCloseReceipt.setStyle(UIStyle.buttonStyle);</span>
+
+<span class="nc" id="L164">        btnCloseReceipt.setOnAction(this::buttonClicked);</span>
+
+<span class="nc" id="L166">        vbReceiptPage = new VBox(15, laPageTitle, taReceipt, btnCloseReceipt);</span>
+<span class="nc" id="L167">        vbReceiptPage.setPrefWidth(COLUMN_WIDTH);</span>
+<span class="nc" id="L168">        vbReceiptPage.setAlignment(Pos.TOP_CENTER);</span>
+<span class="nc" id="L169">        vbReceiptPage.setStyle(UIStyle.rootStyleYellow);</span>
+<span class="nc" id="L170">        return vbReceiptPage;</span>
+    }
+
+
+    private void buttonClicked(ActionEvent event) {
+        try{
+<span class="nc" id="L176">            Button btn = (Button)event.getSource();</span>
+<span class="nc" id="L177">            String action = btn.getText();</span>
+<span class="nc" id="L178">            System.out.println(&quot;Button clicked: &quot; + action); // Debug output</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            if(action.equals(&quot;Add to Trolley&quot;)){</span>
+<span class="nc" id="L180">                showTrolleyOrReceiptPage(vbTrolleyPage); //ensure trolleyPage shows if the last customer did not close their receiptPage</span>
+            }
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            if(action.equals(&quot;OK &amp; Close&quot;)){</span>
+<span class="nc" id="L183">                showTrolleyOrReceiptPage(vbTrolleyPage);</span>
+            }
+<span class="nc" id="L185">            cusController.doAction(action);</span>
+        }
+<span class="nc" id="L187">        catch(SQLException e){</span>
+<span class="nc" id="L188">            System.err.println(&quot;SQLException in buttonClicked: &quot; + e.getMessage());</span>
+<span class="nc" id="L189">            e.printStackTrace();</span>
+            // Show error to user
+<span class="nc" id="L191">            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);</span>
+<span class="nc" id="L192">            alert.setTitle(&quot;Error&quot;);</span>
+<span class="nc" id="L193">            alert.setHeaderText(&quot;Database Error&quot;);</span>
+<span class="nc" id="L194">            alert.setContentText(&quot;An error occurred: &quot; + e.getMessage());</span>
+<span class="nc" id="L195">            alert.showAndWait();</span>
+<span class="nc" id="L196">        } catch (IOException e) {</span>
+<span class="nc" id="L197">            System.err.println(&quot;IOException in buttonClicked: &quot; + e.getMessage());</span>
+<span class="nc" id="L198">            e.printStackTrace();</span>
+            // Show error to user
+<span class="nc" id="L200">            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);</span>
+<span class="nc" id="L201">            alert.setTitle(&quot;Error&quot;);</span>
+<span class="nc" id="L202">            alert.setHeaderText(&quot;I/O Error&quot;);</span>
+<span class="nc" id="L203">            alert.setContentText(&quot;An error occurred: &quot; + e.getMessage());</span>
+<span class="nc" id="L204">            alert.showAndWait();</span>
+<span class="nc" id="L205">        } catch (Exception e) {</span>
+<span class="nc" id="L206">            System.err.println(&quot;Unexpected exception in buttonClicked: &quot; + e.getMessage());</span>
+<span class="nc" id="L207">            e.printStackTrace();</span>
+            // Show error to user
+<span class="nc" id="L209">            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);</span>
+<span class="nc" id="L210">            alert.setTitle(&quot;Error&quot;);</span>
+<span class="nc" id="L211">            alert.setHeaderText(&quot;Unexpected Error&quot;);</span>
+<span class="nc" id="L212">            alert.setContentText(&quot;An unexpected error occurred: &quot; + e.getMessage());</span>
+<span class="nc" id="L213">            alert.showAndWait();</span>
+<span class="nc" id="L214">        }</span>
+<span class="nc" id="L215">    }</span>
+
+
+    public void update(String imageName, String searchResult, String trolley, String receipt) {
+<span class="nc" id="L219">        System.out.println(&quot;CustomerView.update() called - receipt length: &quot; + receipt.length()); // Debug output</span>
+        try {
+            // Handle image loading with error handling
+            try {
+<span class="nc" id="L223">                ivProduct.setImage(new Image(imageName));</span>
+<span class="nc" id="L224">            } catch (Exception e) {</span>
+<span class="nc" id="L225">                System.err.println(&quot;Error loading image: &quot; + imageName + &quot; - &quot; + e.getMessage());</span>
+                // Try to load a default image or keep the current one
+                try {
+<span class="nc" id="L228">                    ivProduct.setImage(new Image(&quot;imageHolder.jpg&quot;));</span>
+<span class="nc" id="L229">                } catch (Exception e2) {</span>
+<span class="nc" id="L230">                    System.err.println(&quot;Could not load default image either&quot;);</span>
+<span class="nc" id="L231">                }</span>
+<span class="nc" id="L232">            }</span>
+            
+<span class="nc" id="L234">            lbProductInfo.setText(searchResult);</span>
+<span class="nc" id="L235">            taTrolley.setText(trolley);</span>
+            
+<span class="nc bnc" id="L237" title="All 2 branches missed.">            if (!receipt.equals(&quot;&quot;)) {</span>
+<span class="nc" id="L238">                System.out.println(&quot;Switching to receipt page&quot;); // Debug output</span>
+<span class="nc" id="L239">                showTrolleyOrReceiptPage(vbReceiptPage);</span>
+<span class="nc" id="L240">                taReceipt.setText(receipt);</span>
+            } else {
+<span class="nc" id="L242">                System.out.println(&quot;Receipt is empty, staying on trolley page&quot;); // Debug output</span>
+            }
+<span class="nc" id="L244">        } catch (Exception e) {</span>
+<span class="nc" id="L245">            System.err.println(&quot;Error in CustomerView.update(): &quot; + e.getMessage());</span>
+<span class="nc" id="L246">            e.printStackTrace();</span>
+<span class="nc" id="L247">        }</span>
+<span class="nc" id="L248">    }</span>
+
+    // Replaces the last child of hbRoot with the specified page.
+    // the last child is either vbTrolleyPage or vbReceiptPage.
+    private void showTrolleyOrReceiptPage(Node pageToShow) {
+<span class="nc" id="L253">        int lastIndex = hbRoot.getChildren().size() - 1;</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        if (lastIndex &gt;= 0) {</span>
+<span class="nc" id="L255">            hbRoot.getChildren().set(lastIndex, pageToShow);</span>
+        }
+<span class="nc" id="L257">    }</span>
+
+    WindowBounds getWindowBounds() {
+<span class="nc" id="L260">        return new WindowBounds(viewWindow.getX(), viewWindow.getY(),</span>
+<span class="nc" id="L261">                  viewWindow.getWidth(), viewWindow.getHeight());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

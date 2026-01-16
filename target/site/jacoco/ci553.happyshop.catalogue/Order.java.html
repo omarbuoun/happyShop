@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Order.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.catalogue</a> &gt; <span class="el_source">Order.java</span></div><h1>Order.java</h1><pre class="source lang-java linenums">package ci553.happyshop.catalogue;
+
+import ci553.happyshop.orderManagement.OrderState;
+import ci553.happyshop.utility.ProductListFormatter;
+
+import java.util.ArrayList;
+
+/**
+ * The Order class represents a customer order, including metadata and a list of ordered products.
+ *
+ * Responsibilities:
+ * - sotres information about an order, including order ID, current order state, timestamps, and the list of products.
+ * - Provides getter methods for order attributes and allows updating the order state.
+ * - Formats the full order details for writing to a file, including timestamps and item list.
+ *
+ * An order file example:
+ * Order ID: 10
+ * State: Ordered
+ * OrderedDateTime: 2025-05-03 16:52:24
+ * ProgressingDateTime:
+ * CollectedDateTime:
+ * Items:
+ *  0002    DAB Radio          ( 1) £  29.99
+ *  0004    Watch              ( 1) £  29.99
+ *  0007    USB drive          ( 1) £   6.99
+ * --------------------------------------------
+ *  Total                               £  66.97
+ *
+ * This class is mainly used by OrderHub to create and manage order objects during
+ * the order lifecycle (ordered → progressing → collected).
+ */
+
+public class Order {
+    private int orderId;
+    private OrderState state;
+<span class="fc" id="L36">    private String orderedDateTime=&quot;&quot;;</span>
+<span class="fc" id="L37">    private String progressingDateTime=&quot;&quot;;</span>
+<span class="fc" id="L38">    private String collectedDateTime=&quot;&quot;;</span>
+<span class="fc" id="L39">    private String cancelledDateTime=&quot;&quot;;</span>
+<span class="fc" id="L40">    private ArrayList&lt;Product&gt; productList = new ArrayList&lt;&gt;(); //Trolley</span>
+
+    // Constructor used by OrderHub to create a new order for a customer.
+    // Initializes the order with an ID, state, order date/time, and a list of ordered products.
+<span class="fc" id="L44">    public Order(int orderId,OrderState state, String orderedDateTime,ArrayList&lt;Product&gt; productList) {</span>
+<span class="fc" id="L45">        this.orderId = orderId;</span>
+<span class="fc" id="L46">        this.state = state;</span>
+<span class="fc" id="L47">        this.orderedDateTime =orderedDateTime;</span>
+<span class="fc" id="L48">        this.productList = new ArrayList&lt;&gt;(productList);</span>
+<span class="fc" id="L49">    }</span>
+
+    //a set of getter methods
+<span class="nc" id="L52">    public int getOrderId() { return orderId;}</span>
+<span class="fc" id="L53">    public OrderState getState() { return state; }</span>
+<span class="nc" id="L54">    public String getOrderedDateTime(){ return orderedDateTime; }</span>
+    public ArrayList&lt;Product&gt; getProductList() {
+<span class="nc" id="L56">        return productList;</span>
+    }
+
+<span class="nc" id="L59">    public void setState(OrderState state) { this.state = state; }</span>
+
+    /**
+     * order details written to file, used by OrderHub
+     *  - Order metadata (ID, state, and three timestamps)
+     *  -Product details included in the order
+     */
+    public String orderDetails() {
+<span class="fc" id="L67">        return String.format(&quot;Order ID: %s \n&quot; +</span>
+                        &quot;State: %s \n&quot; +
+                        &quot;OrderedDateTime: %s \n&quot; +
+                        &quot;ProgressingDateTime: %s \n&quot; +
+                        &quot;CollectedDateTime: %s\n&quot; +
+                        &quot;CancelledDateTime: %s\n&quot; +
+                        &quot;Items:\n%s&quot;,
+<span class="fc" id="L74">                orderId,</span>
+                state,
+                orderedDateTime,
+                progressingDateTime,
+                collectedDateTime,
+                cancelledDateTime,
+<span class="fc" id="L80">                ProductListFormatter.buildString(productList)</span>
+                );
+    }
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

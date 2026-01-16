@@ -1,0 +1,52 @@
+-------------------------------------------------------------------------------
+Test set: ci553.happyshop.client.warehouse.WarehouseModelTest
+-------------------------------------------------------------------------------
+Tests run: 4, Failures: 0, Errors: 4, Skipped: 0, Time elapsed: 0.010 s <<< FAILURE! -- in ci553.happyshop.client.warehouse.WarehouseModelTest
+ci553.happyshop.client.warehouse.WarehouseModelTest.testDoSearchEmpty -- Time elapsed: 0.005 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class javafx.scene.control.TextField
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.warehouse.WarehouseModelTest$MockWarehouseView.<init>(WarehouseModelTest.java:110)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.warehouse.WarehouseModelTest.setUp(WarehouseModelTest.java:42)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread "main"]
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest$MockCustomerView.<init>(CustomerModelSearchTest.java:118)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest.setUp(CustomerModelSearchTest.java:42)
+	... 3 more
+
+ci553.happyshop.client.warehouse.WarehouseModelTest.testDoSearch -- Time elapsed: 0.001 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class javafx.scene.control.TextField
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.warehouse.WarehouseModelTest$MockWarehouseView.<init>(WarehouseModelTest.java:110)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.warehouse.WarehouseModelTest.setUp(WarehouseModelTest.java:42)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread "main"]
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest$MockCustomerView.<init>(CustomerModelSearchTest.java:118)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest.setUp(CustomerModelSearchTest.java:42)
+	... 3 more
+
+ci553.happyshop.client.warehouse.WarehouseModelTest.testDoCheckLowStock -- Time elapsed: 0.001 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class javafx.scene.control.TextField
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.warehouse.WarehouseModelTest$MockWarehouseView.<init>(WarehouseModelTest.java:110)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.warehouse.WarehouseModelTest.setUp(WarehouseModelTest.java:42)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread "main"]
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest$MockCustomerView.<init>(CustomerModelSearchTest.java:118)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest.setUp(CustomerModelSearchTest.java:42)
+	... 3 more
+
+ci553.happyshop.client.warehouse.WarehouseModelTest.testDoCheckLowStockWithError -- Time elapsed: 0.001 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class javafx.scene.control.TextField
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.warehouse.WarehouseModelTest$MockWarehouseView.<init>(WarehouseModelTest.java:110)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.warehouse.WarehouseModelTest.setUp(WarehouseModelTest.java:42)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread "main"]
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest$MockCustomerView.<init>(CustomerModelSearchTest.java:118)
+	at ci553.happyshop@1.0-SNAPSHOT/ci553.happyshop.client.customer.CustomerModelSearchTest.setUp(CustomerModelSearchTest.java:42)
+	... 3 more
+

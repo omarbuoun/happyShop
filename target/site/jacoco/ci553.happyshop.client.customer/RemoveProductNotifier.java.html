@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RemoveProductNotifier.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.customer</a> &gt; <span class="el_source">RemoveProductNotifier.java</span></div><h1>RemoveProductNotifier.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.customer;
+
+import ci553.happyshop.utility.UIStyle;
+import ci553.happyshop.utility.WindowBounds;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+
+/**
+ * The RemoveProductNotifier class provides a dependent window that displays messages
+ * and suggested actions to the customer when certain products are removed from their trolley.
+ *
+ * It is triggered by the CustomerModel when the customer submits a trolley that includes
+ * products exceeding available stock.
+ *
+ * This window tracks the position of the main CustomerView window to appear nearby,
+ * maintaining a cohesive and user-friendly interface.
+ */
+
+/**
+ * - The scene is created only once to avoid unnecessary recreation of the same layout.
+ * - The window is created and shown only when needed. If the window is already open, it will be brought to the front.
+ * - The `window` and `scene` are managed separately, allowing the scene to be reused while creating the window as needed.
+ * - The window is closed and reset when the &quot;Ok&quot; button is clicked.
+ * - The window is also closed when Cancel or Check Out(successfully) was clicked even the window is showing
+ */
+
+<span class="nc" id="L34">public class RemoveProductNotifier {</span>
+    public CustomerView cusView; //tracking the window of cusView
+
+<span class="nc" id="L37">    private static int WIDTH = UIStyle.removeProNotifierWinWidth;</span>
+<span class="nc" id="L38">    private static int HEIGHT = UIStyle.removeProNotifierWinHeight;</span>
+
+    private Stage window; //window for ProductRemovalNotifier
+    private Scene scene; // Scene for ProductRemovalNotifier
+    private TextArea taRemoveMsg;// TextArea to display removal products messages
+
+    // Create the Scene (only once)
+    private void createScene() {
+<span class="nc" id="L46">        Label laTitle = new Label(&quot;\u26A0 Some changes have been made to your trolley.&quot;); // ⚠️</span>
+<span class="nc" id="L47">        laTitle.setStyle(UIStyle.alertTitleLabelStyle);</span>
+
+<span class="nc" id="L49">        taRemoveMsg = new TextArea();</span>
+<span class="nc" id="L50">        taRemoveMsg.setEditable(false);</span>
+<span class="nc" id="L51">        taRemoveMsg.setWrapText(true);</span>
+<span class="nc" id="L52">        taRemoveMsg.setPrefHeight(80);</span>
+<span class="nc" id="L53">        taRemoveMsg.setStyle(UIStyle.alertContentTextAreaStyle);</span>
+
+<span class="nc" id="L55">        Label laCustomerAction = new Label(cutomerActionBuilder());</span>
+<span class="nc" id="L56">        laCustomerAction.setWrapText(true);</span>
+<span class="nc" id="L57">        laCustomerAction.setStyle(UIStyle.alertContentUserActionStyle);</span>
+
+<span class="nc" id="L59">        Button btnOk = new Button(&quot;Ok&quot;);</span>
+<span class="nc" id="L60">        btnOk.setStyle(UIStyle.alertBtnStyle);</span>
+<span class="nc" id="L61">        btnOk.setOnAction(e -&gt; {</span>
+<span class="nc" id="L62">            window.close();</span>
+<span class="nc" id="L63">        });</span>
+
+        // HBox: Customer action Label + OK button
+<span class="nc" id="L66">        HBox hbCustomerAction = new HBox(20, laCustomerAction, btnOk);</span>
+<span class="nc" id="L67">        hbCustomerAction.setAlignment(Pos.CENTER_LEFT);</span>
+
+        // Top level GridPane layout
+<span class="nc" id="L70">        GridPane pane = new GridPane();</span>
+<span class="nc" id="L71">        pane.setHgap(5);</span>
+<span class="nc" id="L72">        pane.setVgap(5);</span>
+
+<span class="nc" id="L74">        pane.add(laTitle, 0, 0);</span>
+<span class="nc" id="L75">        pane.add(taRemoveMsg, 0, 1);</span>
+<span class="nc" id="L76">        pane.add(hbCustomerAction, 0, 2);</span>
+<span class="nc" id="L77">        pane.setStyle(UIStyle.rootStyleGray);</span>
+
+<span class="nc" id="L79">        scene = new Scene(pane, WIDTH, HEIGHT);</span>
+<span class="nc" id="L80">    }</span>
+
+    private String cutomerActionBuilder(){
+<span class="nc" id="L83">        StringBuilder actions = new StringBuilder(&quot; \u26A1 You can now: \n&quot;);</span>
+<span class="nc" id="L84">        actions.append(&quot;\u2022 Checkout your trolley as it is \n&quot;);</span>
+<span class="nc" id="L85">        actions.append(&quot;\u2022 Re-add the removed products (up to the available quantity) \n&quot;);</span>
+<span class="nc" id="L86">        actions.append(&quot;\u2022 Or cancel your trolley if you no longer wish to proceed.\n&quot;);</span>
+<span class="nc" id="L87">        actions.append(&quot;Thank you for understanding! \n&quot;);</span>
+<span class="nc" id="L88">        return  actions.toString();</span>
+    }
+
+    // Create the window if not exists
+    //also recreate a window if the user closed it with messages in it
+    private void createWindow() {
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (scene == null) {</span>
+<span class="nc" id="L95">            createScene();  //create scene if not exists</span>
+        }
+
+<span class="nc" id="L98">        window = new Stage();</span>
+<span class="nc" id="L99">        window.initModality(Modality.NONE); //Optional: explicitly set as non-blocking, though this is the default</span>
+<span class="nc" id="L100">        window.setTitle(&quot;🛒Products removal notifier&quot;);</span>
+<span class="nc" id="L101">        window.setScene(scene);</span>
+
+        //get bounds of betterCustomer window which trigers the ProductRemovalNotifier
+        // so that we can put the ProductRemovalNotifier at a suitable position
+<span class="nc" id="L105">        WindowBounds bounds = cusView.getWindowBounds();</span>
+<span class="nc" id="L106">        window.setX(bounds.x + bounds.width -WIDTH -10); // Position to the right of warehouse window</span>
+<span class="nc" id="L107">        window.setY(bounds.y + bounds.height / 2 + 40);</span>
+<span class="nc" id="L108">        window.show();</span>
+<span class="nc" id="L109">    }</span>
+
+    // Show remove product message
+    public void showRemovalMsg(String removalMsg) {
+<span class="nc bnc" id="L113" title="All 4 branches missed.">        if (window ==null ||!window.isShowing() ) {</span>
+<span class="nc" id="L114">            createWindow(); // create window if not exists</span>
+        }
+
+<span class="nc" id="L117">        taRemoveMsg.setText(removalMsg); // Update the error message</span>
+<span class="nc" id="L118">        window.toFront(); // Bring the window to the front if it's already open</span>
+<span class="nc" id="L119">    }</span>
+
+    /**
+     * Closes the ProductRemovalNotifier window.
+     * The purpose of this method is to provide a way to close the notifier window from outside this class,
+     * when it is no longer needed (e.g., after canceling or submitting order while the window is still showing
+     * from previous).
+     */
+    public void closeNotifierWindow() {
+<span class="nc bnc" id="L128" title="All 4 branches missed.">        if (window != null &amp;&amp; window.isShowing()) {</span>
+<span class="nc" id="L129">            window.close();</span>
+        }
+<span class="nc" id="L131">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
