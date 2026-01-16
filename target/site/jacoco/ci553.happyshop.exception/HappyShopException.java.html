@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HappyShopException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.exception</a> &gt; <span class="el_source">HappyShopException.java</span></div><h1>HappyShopException.java</h1><pre class="source lang-java linenums">package ci553.happyshop.exception;
+
+/**
+ * Base exception class for all HappyShop application exceptions.
+ * 
+ * This provides a common base for all custom exceptions in the system,
+ * allowing for consistent error handling and messaging.
+ * 
+ * All custom exceptions in HappyShop should extend this class.
+ */
+public class HappyShopException extends Exception {
+    
+    /**
+     * Constructs a new HappyShopException with the specified detail message.
+     * 
+     * @param message the detail message
+     */
+    public HappyShopException(String message) {
+<span class="nc" id="L19">        super(message);</span>
+<span class="nc" id="L20">    }</span>
+    
+    /**
+     * Constructs a new HappyShopException with the specified detail message and cause.
+     * 
+     * @param message the detail message
+     * @param cause the cause (which is saved for later retrieval by the getCause() method)
+     */
+    public HappyShopException(String message, Throwable cause) {
+<span class="nc" id="L29">        super(message, cause);</span>
+<span class="nc" id="L30">    }</span>
+}
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderObserver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.orderManagement</a> &gt; <span class="el_source">OrderObserver.java</span></div><h1>OrderObserver.java</h1><pre class="source lang-java linenums">package ci553.happyshop.orderManagement;
+
+import java.util.TreeMap;
+
+/**
+ * Interface for objects that observe changes to the order map in OrderHub.
+ * 
+ * This interface follows the Observer pattern, allowing objects to be notified
+ * when orders are created, updated, or their states change.
+ * 
+ * Implementing classes should register themselves with OrderHub to receive
+ * notifications about order state changes.
+ * 
+ * @see OrderHub
+ */
+public interface OrderObserver {
+    
+    /**
+     * Called by OrderHub to notify the observer of changes to the order map.
+     * 
+     * The observer should update its internal state and refresh its display
+     * based on the provided order map.
+     * 
+     * @param orderMap A TreeMap containing order IDs as keys and their current states as values.
+     *                 The map may be filtered based on the observer's requirements.
+     */
+    void updateOrderMap(TreeMap&lt;Integer, OrderState&gt; orderMap);
+    
+    /**
+     * Returns the order states that this observer is interested in.
+     * 
+     * This allows OrderHub to filter the order map before notifying the observer.
+     * If null or empty array is returned, the observer will receive all orders.
+     * 
+     * @return An array of OrderState values that this observer wants to receive,
+     *         or null/empty array to receive all orders
+     */
+    default OrderState[] getInterestedStates() {
+<span class="nc" id="L39">        return null; // By default, receive all orders</span>
+    }
+}
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

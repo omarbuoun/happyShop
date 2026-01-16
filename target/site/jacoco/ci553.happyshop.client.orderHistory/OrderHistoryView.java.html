@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderHistoryView.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.orderHistory</a> &gt; <span class="el_source">OrderHistoryView.java</span></div><h1>OrderHistoryView.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.orderHistory;
+
+import ci553.happyshop.service.OrderExportService;
+import ci553.happyshop.service.OrderHistoryService;
+import ci553.happyshop.utility.UIStyle;
+import ci553.happyshop.utility.WinPosManager;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+
+/**
+ * Order History View displays historical orders and statistics.
+ * 
+ * Features:
+ * - View all past orders (collected and cancelled)
+ * - Display order statistics (total orders, revenue, etc.)
+ * - Export order history to CSV or JSON
+ * 
+ * This view provides business insights and allows data export for analysis.
+ */
+public class OrderHistoryView {
+    private static final int WIDTH = 600;
+    private static final int HEIGHT = 500;
+    
+    private Stage window;
+    private Scene scene;
+    private TextArea taHistory;
+    private TextArea taStatistics;
+    private Button btnRefresh;
+    private Button btnExportCSV;
+    private Button btnExportJSON;
+
+<span class="nc" id="L41">    public OrderHistoryView() {</span>
+<span class="nc" id="L42">        createScene();</span>
+<span class="nc" id="L43">    }</span>
+
+    private void createScene() {
+        // Title
+<span class="nc" id="L47">        Label laTitle = new Label(&quot;📊 Order History &amp; Analytics&quot;);</span>
+<span class="nc" id="L48">        laTitle.setStyle(UIStyle.labelTitleStyle);</span>
+
+        // Statistics section
+<span class="nc" id="L51">        Label laStatsTitle = new Label(&quot;Statistics:&quot;);</span>
+<span class="nc" id="L52">        laStatsTitle.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L53">        taStatistics = new TextArea();</span>
+<span class="nc" id="L54">        taStatistics.setEditable(false);</span>
+<span class="nc" id="L55">        taStatistics.setPrefRowCount(6);</span>
+<span class="nc" id="L56">        taStatistics.setStyle(UIStyle.textFiledStyle);</span>
+
+        // History section
+<span class="nc" id="L59">        Label laHistoryTitle = new Label(&quot;Order History:&quot;);</span>
+<span class="nc" id="L60">        laHistoryTitle.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L61">        taHistory = new TextArea();</span>
+<span class="nc" id="L62">        taHistory.setEditable(false);</span>
+<span class="nc" id="L63">        taHistory.setPrefRowCount(15);</span>
+<span class="nc" id="L64">        taHistory.setStyle(UIStyle.textFiledStyle);</span>
+
+        // Buttons
+<span class="nc" id="L67">        btnRefresh = new Button(&quot;🔄 Refresh&quot;);</span>
+<span class="nc" id="L68">        btnRefresh.setStyle(UIStyle.buttonStyle);</span>
+<span class="nc" id="L69">        btnRefresh.setOnAction(e -&gt; refreshHistory());</span>
+
+<span class="nc" id="L71">        btnExportCSV = new Button(&quot;📄 Export CSV&quot;);</span>
+<span class="nc" id="L72">        btnExportCSV.setStyle(UIStyle.buttonStyle);</span>
+<span class="nc" id="L73">        btnExportCSV.setOnAction(e -&gt; exportToCSV());</span>
+
+<span class="nc" id="L75">        btnExportJSON = new Button(&quot;📋 Export JSON&quot;);</span>
+<span class="nc" id="L76">        btnExportJSON.setStyle(UIStyle.buttonStyle);</span>
+<span class="nc" id="L77">        btnExportJSON.setOnAction(e -&gt; exportToJSON());</span>
+
+<span class="nc" id="L79">        HBox hbButtons = new HBox(10, btnRefresh, btnExportCSV, btnExportJSON);</span>
+<span class="nc" id="L80">        hbButtons.setAlignment(Pos.CENTER);</span>
+
+        // Layout
+<span class="nc" id="L83">        VBox vbStats = new VBox(5, laStatsTitle, taStatistics);</span>
+<span class="nc" id="L84">        VBox vbHistory = new VBox(5, laHistoryTitle, taHistory);</span>
+<span class="nc" id="L85">        VBox vbox = new VBox(10, laTitle, vbStats, vbHistory, hbButtons);</span>
+<span class="nc" id="L86">        vbox.setAlignment(Pos.TOP_CENTER);</span>
+<span class="nc" id="L87">        vbox.setStyle(UIStyle.rootStyle);</span>
+
+<span class="nc" id="L89">        scene = new Scene(vbox, WIDTH, HEIGHT);</span>
+<span class="nc" id="L90">    }</span>
+
+    public void start(Stage window) {
+<span class="nc" id="L93">        this.window = window;</span>
+<span class="nc" id="L94">        window.setScene(scene);</span>
+<span class="nc" id="L95">        window.setTitle(&quot;📊 Order History &amp; Analytics&quot;);</span>
+<span class="nc" id="L96">        WinPosManager.registerWindow(window, WIDTH, HEIGHT);</span>
+<span class="nc" id="L97">        window.show();</span>
+        
+        // Load initial data
+<span class="nc" id="L100">        refreshHistory();</span>
+<span class="nc" id="L101">    }</span>
+
+    private void refreshHistory() {
+        try {
+            // Load and display statistics
+<span class="nc" id="L106">            OrderHistoryService.OrderStatistics stats = OrderHistoryService.calculateStatistics();</span>
+<span class="nc" id="L107">            taStatistics.setText(stats.toString());</span>
+
+            // Load and display history
+<span class="nc" id="L110">            ArrayList&lt;String&gt; history = OrderHistoryService.loadOrderHistory();</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (history.isEmpty()) {</span>
+<span class="nc" id="L112">                taHistory.setText(&quot;No order history available.&quot;);</span>
+            } else {
+<span class="nc" id="L114">                StringBuilder historyText = new StringBuilder();</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">                for (String order : history) {</span>
+<span class="nc" id="L116">                    historyText.append(order).append(&quot;\n&quot;);</span>
+<span class="nc" id="L117">                }</span>
+<span class="nc" id="L118">                taHistory.setText(historyText.toString());</span>
+            }
+<span class="nc" id="L120">        } catch (IOException e) {</span>
+<span class="nc" id="L121">            taHistory.setText(&quot;Error loading order history: &quot; + e.getMessage());</span>
+<span class="nc" id="L122">            System.err.println(&quot;Error loading order history: &quot; + e.getMessage());</span>
+<span class="nc" id="L123">            e.printStackTrace();</span>
+<span class="nc" id="L124">        }</span>
+<span class="nc" id="L125">    }</span>
+
+    private void exportToCSV() {
+<span class="nc" id="L128">        FileChooser fileChooser = new FileChooser();</span>
+<span class="nc" id="L129">        fileChooser.setTitle(&quot;Export Order History to CSV&quot;);</span>
+<span class="nc" id="L130">        fileChooser.getExtensionFilters().add(</span>
+            new FileChooser.ExtensionFilter(&quot;CSV Files&quot;, &quot;*.csv&quot;)
+        );
+<span class="nc" id="L133">        fileChooser.setInitialFileName(&quot;order_history_&quot; + </span>
+<span class="nc" id="L134">            java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern(&quot;yyyyMMdd_HHmmss&quot;)) + &quot;.csv&quot;);</span>
+        
+<span class="nc" id="L136">        File file = fileChooser.showSaveDialog(window);</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        if (file != null) {</span>
+            try {
+<span class="nc" id="L139">                OrderExportService.exportToCSV(file.getAbsolutePath());</span>
+<span class="nc" id="L140">                showAlert(&quot;Export Successful&quot;, &quot;Order history exported to:\n&quot; + file.getAbsolutePath());</span>
+<span class="nc" id="L141">            } catch (IOException e) {</span>
+<span class="nc" id="L142">                showAlert(&quot;Export Failed&quot;, &quot;Error exporting to CSV:\n&quot; + e.getMessage());</span>
+<span class="nc" id="L143">                System.err.println(&quot;Error exporting to CSV: &quot; + e.getMessage());</span>
+<span class="nc" id="L144">                e.printStackTrace();</span>
+<span class="nc" id="L145">            }</span>
+        }
+<span class="nc" id="L147">    }</span>
+
+    private void exportToJSON() {
+<span class="nc" id="L150">        FileChooser fileChooser = new FileChooser();</span>
+<span class="nc" id="L151">        fileChooser.setTitle(&quot;Export Order History to JSON&quot;);</span>
+<span class="nc" id="L152">        fileChooser.getExtensionFilters().add(</span>
+            new FileChooser.ExtensionFilter(&quot;JSON Files&quot;, &quot;*.json&quot;)
+        );
+<span class="nc" id="L155">        fileChooser.setInitialFileName(&quot;order_history_&quot; + </span>
+<span class="nc" id="L156">            java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern(&quot;yyyyMMdd_HHmmss&quot;)) + &quot;.json&quot;);</span>
+        
+<span class="nc" id="L158">        File file = fileChooser.showSaveDialog(window);</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        if (file != null) {</span>
+            try {
+<span class="nc" id="L161">                OrderExportService.exportToJSON(file.getAbsolutePath());</span>
+<span class="nc" id="L162">                showAlert(&quot;Export Successful&quot;, &quot;Order history exported to:\n&quot; + file.getAbsolutePath());</span>
+<span class="nc" id="L163">            } catch (IOException e) {</span>
+<span class="nc" id="L164">                showAlert(&quot;Export Failed&quot;, &quot;Error exporting to JSON:\n&quot; + e.getMessage());</span>
+<span class="nc" id="L165">                System.err.println(&quot;Error exporting to JSON: &quot; + e.getMessage());</span>
+<span class="nc" id="L166">                e.printStackTrace();</span>
+<span class="nc" id="L167">            }</span>
+        }
+<span class="nc" id="L169">    }</span>
+
+    private void showAlert(String title, String message) {
+<span class="nc" id="L172">        Alert alert = new Alert(Alert.AlertType.INFORMATION);</span>
+<span class="nc" id="L173">        alert.setTitle(title);</span>
+<span class="nc" id="L174">        alert.setHeaderText(null);</span>
+<span class="nc" id="L175">        alert.setContentText(message);</span>
+<span class="nc" id="L176">        alert.showAndWait();</span>
+<span class="nc" id="L177">    }</span>
+}
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

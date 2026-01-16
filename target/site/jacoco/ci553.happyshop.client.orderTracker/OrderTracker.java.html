@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderTracker.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.orderTracker</a> &gt; <span class="el_source">OrderTracker.java</span></div><h1>OrderTracker.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.orderTracker;
+
+import ci553.happyshop.orderManagement.OrderHub;
+import ci553.happyshop.orderManagement.OrderObserver;
+import ci553.happyshop.orderManagement.OrderState;
+import ci553.happyshop.utility.UIStyle;
+import ci553.happyshop.utility.WinPosManager;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.TreeMap;
+
+/**
+ * OrderTracker class is for tracking orders and their states.
+ * It displays an ordersMap(a list of orders with their associated states) in a TextArea.
+ * The ordersMap data is received from the OrderHub.
+ */
+
+public class OrderTracker implements OrderObserver {
+<span class="fc" id="L30">    private final int WIDTH = UIStyle.trackerWinWidth;</span>
+<span class="fc" id="L31">    private final int HEIGHT = UIStyle.trackerWinHeight;</span>
+
+    // TreeMap (orderID,state) holding order IDs and their corresponding states.
+<span class="fc" id="L34">    private static final TreeMap&lt;Integer, OrderState&gt; ordersMap = new TreeMap&lt;&gt;();</span>
+    private final TextArea taDisplay; //area to show all orderId and their state on the GUI
+
+     //Constructor initializes the UI, a title Label, and a TextArea for displaying the order details.
+<span class="fc" id="L38">    public OrderTracker() {</span>
+<span class="nc" id="L39">        Label laTitle = new Label(&quot;Order_ID,  State&quot;);</span>
+<span class="nc" id="L40">        laTitle.setStyle(UIStyle.labelTitleStyle);</span>
+
+<span class="nc" id="L42">        taDisplay = new TextArea();</span>
+<span class="nc" id="L43">        taDisplay.setEditable(false);</span>
+<span class="nc" id="L44">        taDisplay.setStyle(UIStyle.textFiledStyle);</span>
+
+        // Cancel order section
+<span class="nc" id="L47">        Label laCancelTitle = new Label(&quot;Cancel Order&quot;);</span>
+<span class="nc" id="L48">        laCancelTitle.setStyle(UIStyle.labelTitleStyle);</span>
+        
+<span class="nc" id="L50">        Label laOrderId = new Label(&quot;Order ID:&quot;);</span>
+<span class="nc" id="L51">        laOrderId.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L52">        TextField tfOrderId = new TextField();</span>
+<span class="nc" id="L53">        tfOrderId.setPromptText(&quot;Enter order ID&quot;);</span>
+<span class="nc" id="L54">        tfOrderId.setStyle(UIStyle.textFiledStyle);</span>
+<span class="nc" id="L55">        tfOrderId.setPrefWidth(100);</span>
+        
+<span class="nc" id="L57">        Button btnCancel = new Button(&quot;Cancel Order&quot;);</span>
+<span class="nc" id="L58">        btnCancel.setStyle(UIStyle.buttonStyle);</span>
+<span class="nc" id="L59">        btnCancel.setOnAction(e -&gt; {</span>
+            try {
+<span class="nc" id="L61">                String orderIdText = tfOrderId.getText().trim();</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                if(!orderIdText.isEmpty()) {</span>
+<span class="nc" id="L63">                    int orderId = Integer.parseInt(orderIdText);</span>
+<span class="nc" id="L64">                    OrderHub orderHub = OrderHub.getOrderHub();</span>
+<span class="nc" id="L65">                    boolean cancelled = orderHub.cancelOrder(orderId);</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">                    if(cancelled) {</span>
+<span class="nc" id="L67">                        tfOrderId.clear();</span>
+<span class="nc" id="L68">                        System.out.println(&quot;Order &quot; + orderId + &quot; cancelled successfully&quot;);</span>
+                    } else {
+<span class="nc" id="L70">                        System.out.println(&quot;Failed to cancel order &quot; + orderId);</span>
+                    }
+                }
+<span class="nc" id="L73">            } catch(NumberFormatException ex) {</span>
+<span class="nc" id="L74">                System.err.println(&quot;Invalid order ID format&quot;);</span>
+<span class="nc" id="L75">            } catch(IOException | SQLException ex) {</span>
+<span class="nc" id="L76">                System.err.println(&quot;Error cancelling order: &quot; + ex.getMessage());</span>
+<span class="nc" id="L77">                ex.printStackTrace();</span>
+<span class="nc" id="L78">            }</span>
+<span class="nc" id="L79">        });</span>
+        
+<span class="nc" id="L81">        HBox hbCancel = new HBox(10, laOrderId, tfOrderId, btnCancel);</span>
+<span class="nc" id="L82">        hbCancel.setAlignment(Pos.CENTER);</span>
+        
+<span class="nc" id="L84">        VBox vbox = new VBox(10, laTitle, taDisplay, laCancelTitle, hbCancel);</span>
+<span class="nc" id="L85">        vbox.setAlignment(Pos.TOP_CENTER);</span>
+<span class="nc" id="L86">        vbox.setStyle(UIStyle. rootStyleGray);</span>
+
+<span class="nc" id="L88">        Scene scene = new Scene(vbox, WIDTH, HEIGHT);</span>
+<span class="nc" id="L89">        Stage window = new Stage();</span>
+<span class="nc" id="L90">        window.setScene(scene);</span>
+<span class="nc" id="L91">        window.setTitle(&quot;🛒Order Tracker&quot;);</span>
+
+        // Registers the window's position with WinPosManager.
+<span class="nc" id="L94">        WinPosManager.registerWindow(window,WIDTH,HEIGHT); //calculate position x and y for this window</span>
+<span class="nc" id="L95">        window.show();</span>
+<span class="nc" id="L96">    }</span>
+
+    /**
+     * Registers this OrderTracker instance with the OrderHub.
+     * This allows the OrderTracker to receive updates on order state changes.
+     */
+    public void registerWithOrderHub(){
+<span class="nc" id="L103">        OrderHub orderHub = OrderHub.getOrderHub();</span>
+<span class="nc" id="L104">        orderHub.registerOrderTracker(this);</span>
+<span class="nc" id="L105">    }</span>
+
+    /**
+     * Sets the order map with new data and refreshes the display.
+     * This method is called by OrderHub when order states are updated.
+     * @deprecated Use updateOrderMap() instead (implements OrderObserver interface)
+     */
+    @Deprecated
+    public void setOrderMap(TreeMap&lt;Integer, OrderState&gt; om) {
+<span class="nc" id="L114">        updateOrderMap(om);</span>
+<span class="nc" id="L115">    }</span>
+
+    /**
+     * Updates the order map with new data and refreshes the display.
+     * This method is called by OrderHub when order states are updated.
+     * Implements the OrderObserver interface.
+     * 
+     * @param orderMap A TreeMap containing order IDs as keys and their current states as values
+     */
+    @Override
+    public void updateOrderMap(TreeMap&lt;Integer, OrderState&gt; orderMap) {
+<span class="nc" id="L126">        ordersMap.clear(); // Clears the current map to replace it with the new data.</span>
+<span class="nc" id="L127">        ordersMap.putAll(orderMap);// Adds all new order data to the map.</span>
+<span class="nc" id="L128">        displayOrderMap();// Updates the display with the new order map.</span>
+<span class="nc" id="L129">    }</span>
+
+     //Displays the current order map in the TextArea.
+     //Iterates over the ordersMap and formats each order ID and state for display.
+    private void displayOrderMap() {
+<span class="nc" id="L134">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        for(Map.Entry&lt;Integer, OrderState&gt; entry : ordersMap.entrySet()) {</span>
+<span class="nc" id="L136">            int orderId = entry.getKey();</span>
+<span class="nc" id="L137">            OrderState orderState = entry.getValue();</span>
+<span class="nc" id="L138">            sb.append(orderId).append(&quot; &quot;.repeat(5)).append(orderState).append(&quot;\n&quot;);</span>
+<span class="nc" id="L139">        }</span>
+<span class="nc" id="L140">        String textDisplay = sb.toString();</span>
+<span class="nc" id="L141">        taDisplay.setText(textDisplay);</span>
+<span class="nc" id="L142">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderCounter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.orderManagement</a> &gt; <span class="el_source">OrderCounter.java</span></div><h1>OrderCounter.java</h1><pre class="source lang-java linenums">package ci553.happyshop.orderManagement;
+
+import ci553.happyshop.utility.StorageLocation;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+
+/**
+ * OrderCounter is responsible for generating unique, sequential orderIDs for new orders.
+ *
+ * &lt;p&gt;This class manages a persistent counter stored in an external text file:(ie,&quot;orders/orderCounter.txt&quot;).
+ * On first use, it creates the file and starts the counter at 1.
+ * For subsequent calls, it reads the current number, increments it by 1, writes the updated value
+ * back to the file, and returns the new order ID.&lt;/p&gt;
+ *
+ * &lt;p&gt;File access is synchronized using a file lock to ensure safe operation in a multi-threaded
+ * or multi-process environment. The method is simple to use by OrderHub
+ * or any component that needs to generate order numbers.&lt;/p&gt;
+ *
+ * &lt;p&gt;FileChannel allows exclusive locking of files or specific regions of files,
+ * which prevents other threads or processes from accessing the file simultaneously,
+ * ensuring data integrity. &lt;/p&gt;
+ *
+ * &lt;p&gt; ByteBuffer allows you to work with raw byte data efficiently.
+ * It interacts directly with FileChannel for reading and writing,
+ * making file access faster and more flexible than traditional streams.&lt;/p&gt;
+ */
+
+<span class="nc" id="L34">public class OrderCounter {</span>
+
+    public static int generateOrderId() throws IOException {
+<span class="fc" id="L37">        Path path = StorageLocation.orderCounterPath;</span>
+        
+        // Ensure the directory exists
+<span class="fc" id="L40">        Path parentDir = path.getParent();</span>
+<span class="pc bpc" id="L41" title="2 of 4 branches missed.">        if (parentDir != null &amp;&amp; !Files.exists(parentDir)) {</span>
+<span class="nc" id="L42">            Files.createDirectories(parentDir);</span>
+<span class="nc" id="L43">            System.out.println(&quot;Created directory: &quot; + parentDir);</span>
+        }
+        
+        // Create the file with initial value &quot;0&quot; if it doesn't exist
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">        if (!Files.exists(path)) {</span>
+<span class="nc" id="L48">            Files.writeString(path, &quot;0&quot;, StandardOpenOption.CREATE_NEW);</span>
+<span class="nc" id="L49">            System.out.println(&quot;Created orderCounter file: &quot; + path);</span>
+        }
+
+        // Lock and increment the ID
+<span class="fc" id="L53">        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);</span>
+<span class="fc" id="L54">             FileLock lock = channel.lock()) {</span>
+
+            //creates a ByteBuffer of the same size as the file — so you can read the whole thing.
+<span class="fc" id="L57">            ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());</span>
+<span class="fc" id="L58">            channel.read(buffer); //Reads the file content into the buffer.</span>
+<span class="fc" id="L59">            buffer.flip(); //Prepares the buffer for reading.</span>
+            /** why we must buffer.flip();
+             * After reading data into the buffer,
+             * the cursor (position) is at the end of the data that was just read, not before it.
+             * If you want to read the data you've just written into the buffer,
+             * you need to move the cursor back to the start of the buffer so that you can read from it
+             */
+
+            //Gets the raw byte array from the buffer so you can convert it to a string or number.
+<span class="fc" id="L68">            String content = new String(buffer.array()).trim();</span>
+<span class="fc" id="L69">            int currentId = Integer.parseInt(content);</span>
+<span class="fc" id="L70">            int newId = currentId + 1;</span>
+
+<span class="fc" id="L72">            channel.position(0); // Move to the start of the file</span>
+<span class="fc" id="L73">            channel.truncate(0); // Clear all content in the file (file size becomes 0)</span>
+            //This wraps an existing byte array into a buffer — so you can write it with channel.write().
+<span class="fc" id="L75">            channel.write(ByteBuffer.wrap(String.valueOf(newId).getBytes()));</span>
+
+<span class="fc" id="L77">            System.out.println(&quot;OrderId was generated for now: &quot; + newId);</span>
+<span class="fc" id="L78">            return newId;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

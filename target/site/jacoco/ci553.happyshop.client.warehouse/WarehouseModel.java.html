@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WarehouseModel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.warehouse</a> &gt; <span class="el_source">WarehouseModel.java</span></div><h1>WarehouseModel.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.warehouse;
+
+import ci553.happyshop.catalogue.Product;
+import ci553.happyshop.storageAccess.DatabaseRW;
+import ci553.happyshop.storageAccess.DerbyRW;
+import ci553.happyshop.storageAccess.ImageFileManager;
+import ci553.happyshop.utility.StorageLocation;
+import ci553.happyshop.service.StockAlertService;
+import ci553.happyshop.service.ValidationService;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+
+<span class="fc" id="L19">public class WarehouseModel {</span>
+    private WarehouseView view;
+    private DatabaseRW databaseRW; //Interface type, not specific implementation
+                         //Benefits: Flexibility: Easily change the database implementation.
+
+<span class="fc" id="L24">    private ArrayList&lt;Product&gt; productList = new ArrayList&lt;&gt;(); // search results fetched from the database</span>
+    private Product theSelectedPro; // the product selected from the ListView before the user edits or deletes
+    private String theNewProId;
+
+    //information used to update editProduct child in WarehouseView
+<span class="fc" id="L29">    private String displayIdEdit=&quot;&quot;;</span>
+<span class="fc" id="L30">    private String displayPriceEdit=&quot;&quot;;</span>
+<span class="fc" id="L31">    private String displayStockEdit=&quot;&quot;;</span>
+<span class="fc" id="L32">    private String displayDescriptionEdit=&quot;&quot;;</span>
+<span class="fc" id="L33">    private String displayImageUrlEdit =&quot;WarehouseImageHolder.jpg&quot;;</span>
+
+    private HistoryWindow historyWindow;
+    private AlertSimulator alertSimulator;
+
+    /**
+     * Sets the WarehouseView for this model.
+     * @param view the WarehouseView instance
+     */
+    public void setView(WarehouseView view) {
+<span class="nc" id="L43">        this.view = view;</span>
+<span class="nc" id="L44">    }</span>
+
+    /**
+     * Gets the WarehouseView associated with this model.
+     * @return the WarehouseView instance
+     */
+    public WarehouseView getView() {
+<span class="nc" id="L51">        return view;</span>
+    }
+
+    /**
+     * Sets the DatabaseRW for this model.
+     * @param databaseRW the DatabaseRW instance
+     */
+    public void setDatabaseRW(DatabaseRW databaseRW) {
+<span class="nc" id="L59">        this.databaseRW = databaseRW;</span>
+<span class="nc" id="L60">    }</span>
+
+    /**
+     * Gets the DatabaseRW associated with this model.
+     * @return the DatabaseRW instance
+     */
+    public DatabaseRW getDatabaseRW() {
+<span class="nc" id="L67">        return databaseRW;</span>
+    }
+
+    /**
+     * Sets the HistoryWindow for this model.
+     * @param historyWindow the HistoryWindow instance
+     */
+    public void setHistoryWindow(HistoryWindow historyWindow) {
+<span class="nc" id="L75">        this.historyWindow = historyWindow;</span>
+<span class="nc" id="L76">    }</span>
+
+    /**
+     * Gets the HistoryWindow associated with this model.
+     * @return the HistoryWindow instance
+     */
+    public HistoryWindow getHistoryWindow() {
+<span class="nc" id="L83">        return historyWindow;</span>
+    }
+
+    /**
+     * Sets the AlertSimulator for this model.
+     * @param alertSimulator the AlertSimulator instance
+     */
+    public void setAlertSimulator(AlertSimulator alertSimulator) {
+<span class="nc" id="L91">        this.alertSimulator = alertSimulator;</span>
+<span class="nc" id="L92">    }</span>
+
+    /**
+     * Gets the AlertSimulator associated with this model.
+     * @return the AlertSimulator instance
+     */
+    public AlertSimulator getAlertSimulator() {
+<span class="nc" id="L99">        return alertSimulator;</span>
+    }
+
+    /**
+     * Gets the display ID for editing.
+     * @return the display ID
+     */
+    public String getDisplayIdEdit() {
+<span class="nc" id="L107">        return displayIdEdit;</span>
+    }
+
+    /**
+     * Sets the display ID for editing.
+     * @param displayIdEdit the display ID
+     */
+    public void setDisplayIdEdit(String displayIdEdit) {
+<span class="nc" id="L115">        this.displayIdEdit = displayIdEdit;</span>
+<span class="nc" id="L116">    }</span>
+
+    /**
+     * Gets the display price for editing.
+     * @return the display price
+     */
+    public String getDisplayPriceEdit() {
+<span class="nc" id="L123">        return displayPriceEdit;</span>
+    }
+
+    /**
+     * Sets the display price for editing.
+     * @param displayPriceEdit the display price
+     */
+    public void setDisplayPriceEdit(String displayPriceEdit) {
+<span class="nc" id="L131">        this.displayPriceEdit = displayPriceEdit;</span>
+<span class="nc" id="L132">    }</span>
+
+    /**
+     * Gets the display stock for editing.
+     * @return the display stock
+     */
+    public String getDisplayStockEdit() {
+<span class="nc" id="L139">        return displayStockEdit;</span>
+    }
+
+    /**
+     * Sets the display stock for editing.
+     * @param displayStockEdit the display stock
+     */
+    public void setDisplayStockEdit(String displayStockEdit) {
+<span class="nc" id="L147">        this.displayStockEdit = displayStockEdit;</span>
+<span class="nc" id="L148">    }</span>
+
+    /**
+     * Gets the display description for editing.
+     * @return the display description
+     */
+    public String getDisplayDescriptionEdit() {
+<span class="nc" id="L155">        return displayDescriptionEdit;</span>
+    }
+
+    /**
+     * Sets the display description for editing.
+     * @param displayDescriptionEdit the display description
+     */
+    public void setDisplayDescriptionEdit(String displayDescriptionEdit) {
+<span class="nc" id="L163">        this.displayDescriptionEdit = displayDescriptionEdit;</span>
+<span class="nc" id="L164">    }</span>
+
+    /**
+     * Gets the display image URL for editing.
+     * @return the display image URL
+     */
+    public String getDisplayImageUrlEdit() {
+<span class="nc" id="L171">        return displayImageUrlEdit;</span>
+    }
+
+    /**
+     * Sets the display image URL for editing.
+     * @param displayImageUrlEdit the display image URL
+     */
+    public void setDisplayImageUrlEdit(String displayImageUrlEdit) {
+<span class="nc" id="L179">        this.displayImageUrlEdit = displayImageUrlEdit;</span>
+<span class="nc" id="L180">    }</span>
+<span class="fc" id="L181">    private String displayInputErrorMsg =&quot;&quot;; //error message showing in the alertSimulator</span>
+<span class="fc" id="L182">    private ArrayList&lt;String&gt; displayManageHistory = new ArrayList&lt;&gt;();// Manage Product history</span>
+                                                               //shows in the HistoryWindow
+<span class="nc" id="L184">    private enum ManageProductType{</span>
+<span class="nc" id="L185">        Edited,</span>
+<span class="nc" id="L186">        Deleted,</span>
+<span class="nc" id="L187">        New</span>
+    }
+
+<span class="nc" id="L190">    private enum UpdateForAction{</span>
+        //actions in Search Page
+<span class="nc" id="L192">        BtnSearch,  //actually its updating the Observable ProductList</span>
+<span class="nc" id="L193">        BtnEdit,</span>
+<span class="nc" id="L194">        BtnDelete,</span>
+
+        //actions in Editing an existing product page
+<span class="nc" id="L197">        BtnChangeStockBy, // Refers to both &quot;+&quot; and &quot;−&quot; buttons for changing stock</span>
+<span class="nc" id="L198">        BtnSummitEdit,</span>
+<span class="nc" id="L199">        BtnCancelEdit,</span>
+
+        // actions in Adding a new product to stock page
+<span class="nc" id="L202">        BtnCancelNew,</span>
+<span class="nc" id="L203">        BtnSummitNew,</span>
+
+        //show user input error message in alertSimulator
+<span class="nc" id="L206">        ShowInputErrorMsg</span>
+    }
+
+    void doSearch() throws SQLException {
+<span class="nc" id="L210">        String keyword = getView().tfSearchKeyword.getText().trim();</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        if (!keyword.equals(&quot;&quot;)) {</span>
+<span class="nc" id="L212">            productList = getDatabaseRW().searchProduct(keyword);</span>
+        }
+        else{
+<span class="nc" id="L215">            productList.clear();</span>
+<span class="nc" id="L216">            System.out.println(&quot;please type product ID or name to search&quot;);</span>
+        }
+<span class="nc" id="L218">        updateView(UpdateForAction.BtnSearch);</span>
+<span class="nc" id="L219">    }</span>
+
+    /**
+     * Scans all products for low stock conditions and displays alerts.
+     * This method checks all products in the database and shows alerts for
+     * products that are out of stock or below the low stock threshold.
+     */
+    void doCheckLowStock() throws SQLException {
+        try {
+<span class="nc" id="L228">            ArrayList&lt;Product&gt; allProducts = getDatabaseRW().getAllProducts();</span>
+<span class="nc" id="L229">            String alertMsg = StockAlertService.generateCombinedAlertMessage(allProducts);</span>
+            
+<span class="nc bnc" id="L231" title="All 4 branches missed.">            if(alertMsg != null &amp;&amp; getAlertSimulator() != null) {</span>
+<span class="nc" id="L232">                getAlertSimulator().showErrorMsg(alertMsg);</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">            } else if(getAlertSimulator() != null) {</span>
+<span class="nc" id="L234">                getAlertSimulator().showErrorMsg(&quot;✅ All products have sufficient stock!\n\nNo low stock alerts at this time.&quot;);</span>
+            }
+<span class="nc" id="L236">        } catch (SQLException e) {</span>
+<span class="nc" id="L237">            System.err.println(&quot;Error checking low stock: &quot; + e.getMessage());</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">            if(getAlertSimulator() != null) {</span>
+<span class="nc" id="L239">                getAlertSimulator().showErrorMsg(&quot;Error checking stock levels: &quot; + e.getMessage());</span>
+            }
+<span class="nc" id="L241">            throw e;</span>
+<span class="nc" id="L242">        }</span>
+<span class="nc" id="L243">    }</span>
+
+    void doDelete() throws SQLException, IOException {
+<span class="nc" id="L246">        System.out.println(&quot;delete gets called in model&quot;);</span>
+<span class="nc" id="L247">        Product pro  = getView().obrLvProducts.getSelectionModel().getSelectedItem();</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        if (pro != null ) {</span>
+<span class="nc" id="L249">            theSelectedPro = pro;</span>
+<span class="nc" id="L250">            productList.remove(theSelectedPro); //remove the product from product List</span>
+
+            //update databse: delete the product from database
+<span class="nc" id="L253">            getDatabaseRW().deleteProduct(theSelectedPro.getProductId());</span>
+
+            //delete the image from imageFolder &quot;images/&quot;
+<span class="nc" id="L256">            String imageName = theSelectedPro.getProductImageName(); //eg 0011.jpg;</span>
+<span class="nc" id="L257">            ImageFileManager.deleteImageFile(StorageLocation.imageFolder, imageName);</span>
+
+<span class="nc" id="L259">            updateView(UpdateForAction.BtnDelete);</span>
+<span class="nc" id="L260">            theSelectedPro = null;</span>
+<span class="nc" id="L261">        }</span>
+        else{
+<span class="nc" id="L263">            System.out.println(&quot;No product was selected&quot;);</span>
+        }
+<span class="nc" id="L265">    }</span>
+
+    void doEdit() {
+<span class="nc" id="L268">        System.out.println(&quot;Edit gets called in model&quot;);</span>
+<span class="nc" id="L269">        Product pro = getView().obrLvProducts.getSelectionModel().getSelectedItem();</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (pro != null) {</span>
+<span class="nc" id="L271">            theSelectedPro = pro;</span>
+<span class="nc" id="L272">            displayIdEdit = theSelectedPro.getProductId();</span>
+<span class="nc" id="L273">            displayPriceEdit = String.format(&quot;%.2f&quot;, theSelectedPro.getUnitPrice());</span>
+<span class="nc" id="L274">            displayStockEdit = String.valueOf (theSelectedPro.getStockQuantity());</span>
+<span class="nc" id="L275">            displayDescriptionEdit = theSelectedPro.getProductDescription();</span>
+
+<span class="nc" id="L277">            String relativeImageUri = StorageLocation.imageFolder + theSelectedPro.getProductImageName();</span>
+<span class="nc" id="L278">            Path imageFullPath = Paths.get(relativeImageUri).toAbsolutePath();</span>
+<span class="nc" id="L279">            displayImageUrlEdit = imageFullPath.toUri().toString();//build the full path Uri</span>
+
+<span class="nc" id="L281">            System.out.println(&quot;get new pro image name: &quot; + displayImageUrlEdit);</span>
+<span class="nc" id="L282">            updateView(UpdateForAction.BtnEdit);</span>
+<span class="nc" id="L283">        }</span>
+        else{
+<span class="nc" id="L285">            System.out.println(&quot;No product was selected&quot;);</span>
+        }
+
+<span class="nc" id="L288">    }</span>
+
+    void doCancel(){
+<span class="nc bnc" id="L291" title="All 2 branches missed.">       if(getView().theProFormMode.equals(&quot;EDIT&quot;)){</span>
+<span class="nc" id="L292">           updateView(UpdateForAction.BtnCancelEdit);</span>
+<span class="nc" id="L293">           theSelectedPro = null;</span>
+       }
+<span class="nc bnc" id="L295" title="All 2 branches missed.">       if(getView().theProFormMode.equals(&quot;NEW&quot;)){</span>
+<span class="nc" id="L296">           updateView(UpdateForAction.BtnCancelNew);</span>
+<span class="nc" id="L297">           theNewProId = null;</span>
+       }
+<span class="nc" id="L299">    }</span>
+    void doSummit() throws SQLException, IOException {
+<span class="nc bnc" id="L301" title="All 2 branches missed.">        if(getView().theProFormMode.equals(&quot;EDIT&quot;)){</span>
+<span class="nc" id="L302">            doSubmitEdit();</span>
+        }
+<span class="nc bnc" id="L304" title="All 2 branches missed.">        if(getView().theProFormMode.equals(&quot;NEW&quot;)){</span>
+<span class="nc" id="L305">            doSubmitNew();</span>
+        }
+<span class="nc" id="L307">    }</span>
+
+    private void doSubmitEdit() throws IOException, SQLException {
+<span class="nc" id="L310">        System.out.println(&quot;ok edit is called&quot;);</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">        if(theSelectedPro!=null) {</span>
+<span class="nc" id="L312">            String id=theSelectedPro.getProductId();</span>
+<span class="nc" id="L313">            System.out.println(&quot;theSelectedPro &quot; + id); //debug purpose</span>
+<span class="nc" id="L314">            String imageName = theSelectedPro.getProductImageName();</span>
+
+<span class="nc" id="L316">            String textPrice = getView().tfPriceEdit.getText().trim();</span>
+<span class="nc" id="L317">            String textStock = getView().tfStockEdit.getText().trim();</span>
+<span class="nc" id="L318">            String description = getView().taDescriptionEdit.getText().trim();</span>
+
+<span class="nc bnc" id="L320" title="All 2 branches missed.">            if(getView().isUserSelectedImageEdit == true){  //if the user changed image</span>
+<span class="nc" id="L321">                ImageFileManager.deleteImageFile(StorageLocation.imageFolder, imageName); //delete the old image</span>
+                //copy the user selected image to project image folder
+                //we use productId as image name, but we need to get its extension from the user selected image
+<span class="nc" id="L324">                String newImageNameWithExtension = ImageFileManager.copyFileToDestination(getView().userSelectedImageUriEdit, StorageLocation.imageFolder,id);</span>
+<span class="nc" id="L325">                imageName = newImageNameWithExtension;</span>
+            }
+
+<span class="nc bnc" id="L328" title="All 2 branches missed.">            boolean hasUnappliedStockChange = !getView().tfChangeByEdit.getText().trim().isEmpty();</span>
+<span class="nc" id="L329">            ValidationService.ValidationResult validationResult = ValidationService.validateEditProduct(</span>
+                textPrice, textStock, description, hasUnappliedStockChange);
+<span class="nc bnc" id="L331" title="All 2 branches missed.">            if (!validationResult.isValid()) {</span>
+<span class="nc" id="L332">                displayInputErrorMsg = validationResult.getErrorMessage();</span>
+<span class="nc" id="L333">                updateView(UpdateForAction.ShowInputErrorMsg);</span>
+            }
+            else {
+<span class="nc" id="L336">                double price = Double.parseDouble(textPrice);</span>
+<span class="nc" id="L337">                int stock= Integer.parseInt(textStock);</span>
+                //update datbase
+<span class="nc" id="L339">                getDatabaseRW().updateProduct(id,description,price,imageName,stock);</span>
+
+                // Check for low stock alert after update
+<span class="nc" id="L342">                checkAndShowStockAlert(id);</span>
+
+<span class="nc" id="L344">                updateView(UpdateForAction.BtnSummitEdit);</span>
+<span class="nc" id="L345">                theSelectedPro=null;</span>
+            }
+<span class="nc" id="L347">        }</span>
+        else{
+<span class="nc" id="L349">            System.out.println(&quot;No Product Selected&quot;);</span>
+        }
+<span class="nc" id="L351">    }</span>
+
+    void doChangeStockBy(String addOrSub) throws SQLException {
+<span class="nc" id="L354">        int oldStock = Integer.parseInt(getView().tfStockEdit.getText().trim());</span>
+<span class="nc" id="L355">        int newStock =oldStock;</span>
+<span class="nc" id="L356">        String TextChangeBy = getView().tfChangeByEdit.getText().trim();</span>
+<span class="nc bnc" id="L357" title="All 2 branches missed.">        if(!TextChangeBy.isEmpty()){</span>
+<span class="nc bnc" id="L358" title="All 2 branches missed.">            if(validateInputChangeStockBy(TextChangeBy)==false){</span>
+<span class="nc" id="L359">                updateView(UpdateForAction.ShowInputErrorMsg);</span>
+            } else{
+<span class="nc" id="L361">                int changeBy = Integer.parseInt(TextChangeBy);</span>
+<span class="nc bnc" id="L362" title="All 3 branches missed.">                switch(addOrSub){</span>
+                    case &quot;add&quot;:
+<span class="nc" id="L364">                        newStock = oldStock + changeBy;</span>
+<span class="nc" id="L365">                        break;</span>
+                    case &quot;sub&quot;:
+<span class="nc" id="L367">                        newStock = oldStock - changeBy;</span>
+                        break;
+                }
+<span class="nc" id="L370">                displayStockEdit = String.valueOf (newStock);</span>
+                
+                // Check for low stock alert after stock change (preview before submit)
+<span class="nc bnc" id="L373" title="All 4 branches missed.">                if(theSelectedPro != null &amp;&amp; newStock &lt;= StockAlertService.DEFAULT_LOW_STOCK_THRESHOLD) {</span>
+<span class="nc" id="L374">                    String alertMsg = StockAlertService.generateAlertMessage(</span>
+<span class="nc" id="L375">                        new Product(theSelectedPro.getProductId(), theSelectedPro.getProductDescription(),</span>
+<span class="nc" id="L376">                            theSelectedPro.getProductImageName(), theSelectedPro.getUnitPrice(), newStock));</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">                    if(alertMsg != null) {</span>
+                        // Show warning in alert simulator
+<span class="nc" id="L379">                        getAlertSimulator().showErrorMsg(&quot;⚠️ Stock Alert Preview:\n\n&quot; + alertMsg);</span>
+                    }
+                }
+                
+<span class="nc" id="L383">                updateView(UpdateForAction.BtnChangeStockBy);</span>
+            }
+        }
+<span class="nc" id="L386">    }</span>
+
+    private  boolean validateInputChangeStockBy(String txChangeBy) throws SQLException {
+<span class="nc" id="L389">        ValidationService.ValidationResult result = ValidationService.validateStockChangeBy(txChangeBy);</span>
+<span class="nc bnc" id="L390" title="All 2 branches missed.">        if (!result.isValid()) {</span>
+<span class="nc" id="L391">            displayInputErrorMsg = result.getErrorMessage();</span>
+<span class="nc" id="L392">            return false;</span>
+        }
+<span class="nc" id="L394">        return true;</span>
+    }
+
+    private void doSubmitNew() throws SQLException, IOException {
+<span class="nc" id="L398">        System.out.println(&quot;Adding new Pro in model&quot;);</span>
+
+        //all info(input from user) about the new product
+<span class="nc" id="L401">        theNewProId = getView().tfIdNewPro.getText().trim();</span>
+<span class="nc" id="L402">        String textPrice = getView().tfPriceNewPro.getText().trim();</span>
+<span class="nc" id="L403">        String textStock = getView().tfStockNewPro.getText().trim();</span>
+<span class="nc" id="L404">        String description = getView().taDescriptionNewPro.getText().trim();</span>
+<span class="nc" id="L405">        String iPath = getView().imageUriNewPro; //image Path from the imageChooser in View class</span>
+
+        //validate input using ValidationService
+<span class="nc" id="L408">        ValidationService.ValidationResult validationResult = ValidationService.validateNewProduct(</span>
+<span class="nc" id="L409">            theNewProId, textPrice, textStock, description, iPath, getDatabaseRW());</span>
+<span class="nc bnc" id="L410" title="All 2 branches missed.">        if (!validationResult.isValid()) {</span>
+<span class="nc" id="L411">            displayInputErrorMsg = validationResult.getErrorMessage();</span>
+<span class="nc" id="L412">            updateView(UpdateForAction.ShowInputErrorMsg);</span>
+        } else {
+            // Handle image: if user selected an image, copy it; otherwise use default image
+            String imageNameWithExtension;
+<span class="nc bnc" id="L416" title="All 4 branches missed.">            if (iPath != null &amp;&amp; !iPath.trim().isEmpty()) {</span>
+                // User selected an image - copy it to project image folder using productId as image name
+                // and get the image extension from the source image
+<span class="nc" id="L419">                imageNameWithExtension = ImageFileManager.copyFileToDestination(getView().imageUriNewPro, StorageLocation.imageFolder, theNewProId);</span>
+            } else {
+                // No image selected - use default image name (productId.jpg)
+<span class="nc" id="L422">                imageNameWithExtension = theNewProId + &quot;.jpg&quot;;</span>
+            }
+            
+<span class="nc" id="L425">            double price = Double.parseDouble(textPrice);</span>
+<span class="nc" id="L426">            int stock = Integer.parseInt(textStock);</span>
+
+            //insertNewProduct to databse (String id, String des,double price,String image,int stock)
+            //a record in databse looks like ('0001', '40 inch TV', 269.00,'0001.jpg',100)&quot;
+<span class="nc" id="L430">            getDatabaseRW().insertNewProduct(theNewProId,description,price,imageNameWithExtension,stock);</span>
+<span class="nc" id="L431">            updateView(UpdateForAction.BtnSummitNew);</span>
+<span class="nc" id="L432">            theNewProId = null;</span>
+        }
+<span class="nc" id="L434">    }</span>
+
+    // Note: validateInputEditChild and validateInputNewProChild methods have been removed.
+    // Validation logic is now handled by ValidationService to improve separation of concerns.
+
+
+    private void updateView(UpdateForAction updateFor){
+<span class="nc bnc" id="L441" title="All 10 branches missed.">        switch (updateFor) {</span>
+            case UpdateForAction.BtnSearch:
+<span class="nc" id="L443">                view.updateObservableProductList(productList);</span>
+<span class="nc" id="L444">                break;</span>
+            case UpdateForAction.BtnEdit:
+<span class="nc" id="L446">                getView().updateEditProductChild(getDisplayIdEdit(), getDisplayPriceEdit(), getDisplayStockEdit(), getDisplayDescriptionEdit(), getDisplayImageUrlEdit());</span>
+<span class="nc" id="L447">                break;</span>
+            case UpdateForAction.BtnDelete:
+<span class="nc" id="L449">                getView().updateObservableProductList(productList); //update search page in view</span>
+<span class="nc" id="L450">                showManageStockHistory(ManageProductType.Deleted);</span>
+<span class="nc" id="L451">                getView().resetEditChild();</span>
+<span class="nc" id="L452">                getAlertSimulator().closeAlertSimulatorWindow();//close AlertSimulatorWindow if exists</span>
+<span class="nc" id="L453">                break;</span>
+
+            case UpdateForAction.BtnChangeStockBy:
+<span class="nc" id="L456">                getView().updateBtnAddSub(getDisplayStockEdit());</span>
+<span class="nc" id="L457">                getAlertSimulator().closeAlertSimulatorWindow();//close AlertSimulatorWindow if exists</span>
+<span class="nc" id="L458">                break;</span>
+
+            case UpdateForAction.BtnCancelEdit:
+<span class="nc" id="L461">                getView().resetEditChild();</span>
+<span class="nc" id="L462">                getAlertSimulator().closeAlertSimulatorWindow();//close AlertSimulatorWindow if exists</span>
+<span class="nc" id="L463">                break;</span>
+
+            case UpdateForAction.BtnSummitEdit:
+<span class="nc" id="L466">                showManageStockHistory(ManageProductType.Edited);</span>
+<span class="nc" id="L467">                getView().resetEditChild();</span>
+<span class="nc" id="L468">                getAlertSimulator().closeAlertSimulatorWindow();//close AlertSimulatorWindow if exists</span>
+<span class="nc" id="L469">                break;</span>
+
+            case UpdateForAction.BtnCancelNew:
+<span class="nc" id="L472">                getView().resetNewProChild();</span>
+<span class="nc" id="L473">                getAlertSimulator().closeAlertSimulatorWindow();//close AlertSimulatorWindow if exists</span>
+<span class="nc" id="L474">                break;</span>
+
+            case UpdateForAction.BtnSummitNew:
+<span class="nc" id="L477">                showManageStockHistory(ManageProductType.New );</span>
+<span class="nc" id="L478">                getView().resetNewProChild();</span>
+<span class="nc" id="L479">                getAlertSimulator().closeAlertSimulatorWindow();//close AlertSimulatorWindow if exists</span>
+<span class="nc" id="L480">                break;</span>
+
+            case UpdateForAction.ShowInputErrorMsg:
+<span class="nc" id="L483">                getAlertSimulator().showErrorMsg(displayInputErrorMsg);</span>
+        }
+<span class="nc" id="L485">    }</span>
+
+    private void showManageStockHistory(ManageProductType type){
+<span class="nc" id="L488">        String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm&quot;));</span>
+<span class="nc" id="L489">        String record=&quot;&quot;;</span>
+<span class="nc bnc" id="L490" title="All 4 branches missed.">        switch (type) {</span>
+            case ManageProductType.Edited:
+<span class="nc" id="L492">                record = theSelectedPro.getProductId() + &quot; edited successfully, &quot; + dateTime;</span>
+<span class="nc" id="L493">                break;</span>
+            case ManageProductType.Deleted:
+<span class="nc" id="L495">                record = theSelectedPro.getProductId() + &quot; deleted successfully, &quot; + dateTime;</span>
+<span class="nc" id="L496">                break;</span>
+            case ManageProductType.New :
+<span class="nc" id="L498">                record = theNewProId + &quot; added to database successfully, &quot; + dateTime;</span>
+        }
+<span class="nc bnc" id="L500" title="All 2 branches missed.">        if(!record.equals(&quot;&quot;))</span>
+<span class="nc" id="L501">            displayManageHistory.add(record);</span>
+<span class="nc" id="L502">        getHistoryWindow().showManageHistory(displayManageHistory);</span>
+<span class="nc" id="L503">    }</span>
+
+    /**
+     * Checks a product for low stock conditions and shows an alert if needed.
+     * This method is called after stock updates to proactively alert warehouse staff.
+     * 
+     * @param productId The product ID to check
+     */
+    private void checkAndShowStockAlert(String productId) {
+        try {
+<span class="nc" id="L513">            String alertMsg = StockAlertService.checkProductAndGenerateAlert(productId);</span>
+<span class="nc bnc" id="L514" title="All 4 branches missed.">            if(alertMsg != null &amp;&amp; getAlertSimulator() != null) {</span>
+<span class="nc" id="L515">                getAlertSimulator().showErrorMsg(alertMsg);</span>
+            }
+<span class="nc" id="L517">        } catch (SQLException e) {</span>
+<span class="nc" id="L518">            System.err.println(&quot;Error checking stock alert for product &quot; + productId + &quot;: &quot; + e.getMessage());</span>
+<span class="nc" id="L519">        }</span>
+<span class="nc" id="L520">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

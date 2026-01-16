@@ -1,0 +1,610 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WarehouseView.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.warehouse</a> &gt; <span class="el_source">WarehouseView.java</span></div><h1>WarehouseView.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.warehouse;
+
+import ci553.happyshop.catalogue.Product;
+import ci553.happyshop.utility.StorageLocation;
+import ci553.happyshop.utility.UIStyle;
+import ci553.happyshop.utility.WinPosManager;
+import ci553.happyshop.utility.WindowBounds;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import javafx.geometry.Insets;
+import javafx.scene.input.MouseEvent;
+/**
+ * Some emojis used in the UI. If the emoji does not work on your OS,
+ * please change them to their unique Unicode codes.
+ * 🔍 (Search): \uD83D\uDD0D
+ * ➕ (Plus): \u2795
+ * ➖ (Minus): \u2796
+ * 🛒 (Shopping Cart): \uD83D\uDED2
+ * 🏬 (Department Store): \uD83C\uDFEC
+ *
+ * eg Button btnSearch = new Button(&quot;\uD83D\uDD0D&quot;);
+ *    Button btnSearch = new Button(&quot;🔍&quot;);
+ *    case &quot;\uD83D\uDD0D&quot;,
+ *    case &quot;🔍&quot;
+ */
+
+/**
+ * The Warehouse interface (WarehouseView) contains two main pages:
+ * a divider line is between the two pages
+ * 1. Search Page:
+ *    - The key data model for the search page is an observable product list.
+ *    - This list is updated by the model when searching the database.
+ *    - A ListView observes the product list. Whenever the list changes,
+ *      the ListView automatically updates itself based on the specified cell factory.
+ *
+ * 2. Product Form Page:
+ *    - The form page contains a ComboBox for selecting between two actions:
+ *      * Editing an existing product
+ *      * Adding a new product to stock
+ *    - Based on the ComboBox selection, one of two VBoxes will be shown:
+ *      * EditProductVBox (for editing existing products), referred to as **EditChild** in the code
+ *      * NewProductVBox (for adding new products), referred to as **NewProChild** in the code
+ *    - Only one VBox (EditChild or NewProChild) is active and visible at a time, depending on the selected action.
+ */
+
+<span class="fc" id="L65">public class WarehouseView  {</span>
+<span class="fc" id="L66">    private final int WIDTH = UIStyle.warehouseWinWidth;</span>
+<span class="fc" id="L67">    private final int HEIGHT = UIStyle.warehouseWinHeight;</span>
+<span class="fc" id="L68">    private final int COLUMN_WIDTH = WIDTH / 2 - 10;</span>
+
+    public WarehouseController controller;
+    private Stage viewWindow;
+    /** A reference to the main window that is used to get its bounds (position and size).
+     * This allows us to position other windows (like the History window or alert) relative to the Warehouse window.
+     * It helps in keeping the UI layout consistent by placing new windows near the Warehouse window.
+     */
+
+    //some elements in searchPage
+    TextField tfSearchKeyword; //user typing in it
+    private Label laSearchSummary; //eg. the lable shows &quot;3 products found&quot; after search
+    private ObservableList&lt;Product&gt; obeProductList; //observable product list
+    ListView&lt;Product&gt; obrLvProducts; //A ListView observes the product list
+
+    //ProductFormPage:has two children at a time,
+    ComboBox&lt;String&gt; cbProductFormMode; //the first child
+    private VBox vbEditProduct; //the seceond child
+    private VBox vbNewProduct; //another second child
+<span class="fc" id="L87">    String theProFormMode =&quot;EDIT&quot;;</span>
+    /** productFormPage has two children at a time,
+     * 1. cbProductFormMode: A ComboBox that holds two action types for the product form:
+     *    - &quot;EDIT&quot;: For editing an existing product
+     *    - &quot;NEW&quot;: For adding a new product to stock
+     * The action mode (either &quot;EDIT&quot; or &quot;NEW&quot;) is stored in the 'theProFormMode' variable to keep track of the current mode.
+     *
+     * The following two second childeren swap based on the selected value of the ComboBox:
+     * 2. vbEditProduct: contains the UI elements for editing an existing product (visible when &quot;EDIT&quot; is selected)
+     * 2. vbNewProduct: contains the UI elements for adding a new product to stock (visible when &quot;NEW&quot; is selected)
+     */
+
+    //some elements in vbEditProduct, we need to getValue from them and setValue for them
+    private TextField tfIdEdit;
+    TextField tfPriceEdit;
+    TextField tfStockEdit;
+    TextField tfChangeByEdit;
+    TextArea taDescriptionEdit;
+    private ImageView ivProEdit;
+    String userSelectedImageUriEdit;
+<span class="fc" id="L107">    boolean isUserSelectedImageEdit = false;</span>
+    /** userSelectedImageUriEdit: URI of the image selected by the user during editing.
+     * This value is retrieved from the image chooser when the user selects or changes the image for an existing product.
+     *
+     * isUserSelectedImageEdit: A flag indicating if the user has selected a new image for editing an existing product.
+     * This helps the model determine if the old image should be deleted and the new image copied to the destination folder.
+     */
+    private Button btnAdd;
+    private Button btnSub;
+    private Button btnCancelEdit;
+    private Button btnSubmitEdit;
+    /** Normally, buttons are not kept as instance variables. However, in this case,
+     * btnAdd, btnSub, btnCancelEdit, and btnSubmitEdit:
+     * They are kept as instance variables to manage their states (enabled/disabled) when necessary,
+     * eg. when the Cancel or Submit buttons are clicked, to prevent unintended interactions.
+     */
+
+    //some elements in vbNewProduct,we need to getValue from them and setValue for them
+    TextField tfIdNewPro;
+    TextField tfPriceNewPro;
+    TextField tfStockNewPro;
+    TextArea taDescriptionNewPro;
+    private ImageView ivProNewPro;
+    String imageUriNewPro; //user slected image Uri
+    // URI of the image selected by the user for a new product. This value is retrieved from the image chooser.
+
+    public void start(Stage window) {
+<span class="nc" id="L134">        VBox vbSearchPage = createSearchPage();</span>
+<span class="nc" id="L135">        VBox vbProductFormPage = createProductFormPage();</span>
+
+        // Divider line between SearchPage and ProductFormPage
+<span class="nc" id="L138">        Line line = new Line(0, 0, 0, HEIGHT);</span>
+<span class="nc" id="L139">        line.setStrokeWidth(4);</span>
+<span class="nc" id="L140">        line.setStroke(Color.LIGHTGREEN);</span>
+<span class="nc" id="L141">        VBox lineContainer = new VBox(line);</span>
+<span class="nc" id="L142">        lineContainer.setPrefWidth(4);</span>
+<span class="nc" id="L143">        lineContainer.setAlignment(Pos.CENTER);</span>
+
+        //top level layout manager
+<span class="nc" id="L146">        HBox hbRoot = new HBox(15, vbSearchPage, lineContainer, vbProductFormPage);</span>
+<span class="nc" id="L147">        hbRoot.setStyle(UIStyle.rootStyleWarehouse);</span>
+
+<span class="nc" id="L149">        Scene scene = new Scene(hbRoot, WIDTH, HEIGHT);</span>
+<span class="nc" id="L150">        window.setScene(scene);</span>
+<span class="nc" id="L151">        window.setTitle(&quot;Search_Page  🛒🛒HappyShop_Warehouse🛒🛒  ProductForm_Page(Edit &amp; AddNew Product)&quot;);</span>
+<span class="nc" id="L152">        WinPosManager.registerWindow(window,WIDTH,HEIGHT); // Registers the window with WinPosManager to</span>
+        // dynamically position itself based on its size, and any already displayed windows.
+<span class="nc" id="L154">        window.show();</span>
+<span class="nc" id="L155">        viewWindow = window; // Sets the global viewWindow reference to this window for future reference and management.</span>
+<span class="nc" id="L156">    }</span>
+
+    private VBox createSearchPage() {
+<span class="nc" id="L159">        Label laTitle = new Label(&quot;Search by product ID/Name&quot;);</span>
+<span class="nc" id="L160">        laTitle.setStyle(UIStyle.labelTitleStyle);</span>
+
+<span class="nc" id="L162">        tfSearchKeyword = new TextField();</span>
+<span class="nc" id="L163">        tfSearchKeyword.setStyle(UIStyle.textFiledStyle);</span>
+<span class="nc" id="L164">        tfSearchKeyword.setOnAction(actionEvent -&gt; {</span>
+            try {
+<span class="nc" id="L166">                controller.process(&quot;🔍&quot;);  //pressing enter can also do search</span>
+<span class="nc" id="L167">            } catch (SQLException e) {</span>
+<span class="nc" id="L168">                throw new RuntimeException(e);</span>
+<span class="nc" id="L169">            } catch (IOException e) {</span>
+<span class="nc" id="L170">                throw new RuntimeException(e);</span>
+<span class="nc" id="L171">            }</span>
+<span class="nc" id="L172">        });</span>
+<span class="nc" id="L173">        Button btnSearch = new Button(&quot;🔍&quot;);</span>
+        //Button btnSearch = new Button(&quot;\uD83D\uDD0D&quot;); // Unicode for 🔍
+<span class="nc" id="L175">        btnSearch.setOnAction(this::buttonClick);</span>
+<span class="nc" id="L176">        btnSearch.setStyle(UIStyle.buttonStyle);</span>
+        
+<span class="nc" id="L178">        Button btnCheckLowStock = new Button(&quot;⚠️ Check Low Stock&quot;);</span>
+<span class="nc" id="L179">        btnCheckLowStock.setOnAction(this::buttonClick);</span>
+<span class="nc" id="L180">        btnCheckLowStock.setStyle(UIStyle.buttonStyle);</span>
+        
+<span class="nc" id="L182">        HBox hbSearch = new HBox(10, tfSearchKeyword, btnSearch, btnCheckLowStock);</span>
+<span class="nc" id="L183">        hbSearch.setAlignment(Pos.CENTER);</span>
+
+<span class="nc" id="L185">        laSearchSummary = new Label(&quot;Search Summary&quot;);</span>
+<span class="nc" id="L186">        laSearchSummary.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L187">        Button btnEdit = new Button(&quot;Edit&quot;);</span>
+<span class="nc" id="L188">        btnEdit.setStyle(UIStyle.greenFillBtnStyle);</span>
+<span class="nc" id="L189">        btnEdit.setOnAction(this::buttonClick);</span>
+
+<span class="nc" id="L191">        Button btnDelete = new Button(&quot;Delete&quot;);</span>
+<span class="nc" id="L192">        btnDelete.setStyle(UIStyle.grayFillBtnStyle);</span>
+<span class="nc" id="L193">        btnDelete.setOnAction(this::buttonClick);</span>
+
+<span class="nc" id="L195">        HBox hbLaBtns = new HBox(10, laSearchSummary, btnEdit,btnDelete);</span>
+<span class="nc" id="L196">        hbLaBtns.setAlignment(Pos.CENTER);</span>
+<span class="nc" id="L197">        hbLaBtns.setPadding(new Insets(5)); //setPadding only works on Layout manager</span>
+        //hbLaBtns.setStyle(&quot;-fx-padding: 5px;&quot;); //setStyle works on any Node (eg. layout manager, controls)
+
+        // data, an observable ArrayList, observed by obrLvProducts
+<span class="nc" id="L201">        obeProductList = FXCollections.observableArrayList();</span>
+<span class="nc" id="L202">        obrLvProducts = new ListView&lt;&gt;(obeProductList);//ListView proListView observes proList</span>
+<span class="nc" id="L203">        obrLvProducts.setPrefHeight(HEIGHT - 100);</span>
+<span class="nc" id="L204">        obrLvProducts.setFixedCellSize(50);</span>
+<span class="nc" id="L205">        obrLvProducts.setStyle(UIStyle.listViewStyle);</span>
+
+<span class="nc" id="L207">        VBox vbSearchResult = new VBox(5,hbLaBtns, obrLvProducts);</span>
+
+        /**
+         * When is setCellFactory() Needed?
+         * If you want to customize each row’s content (e.g.,images, buttons, labels, etc.).
+         * If you need special formatting (like colors or borders).
+         *
+         * When is setCellFactory() NOT Needed?
+         * Each row is just plain text without images or formatting.
+         */
+<span class="nc" id="L217">        obrLvProducts.setCellFactory(param -&gt; new ListCell&lt;Product&gt;() {</span>
+            @Override
+            protected void updateItem(Product product, boolean empty) {
+<span class="nc" id="L220">                super.updateItem(product, empty);</span>
+
+<span class="nc bnc" id="L222" title="All 4 branches missed.">                if (empty || product == null) {</span>
+<span class="nc" id="L223">                    setGraphic(null);</span>
+<span class="nc" id="L224">                    System.out.println(&quot;setCellFactory - empty item&quot;);</span>
+                } else {
+<span class="nc" id="L226">                    String imageName = product.getProductImageName(); // Get image name (e.g. &quot;0001.jpg&quot;)</span>
+<span class="nc" id="L227">                    String relativeImageUrl = StorageLocation.imageFolder + imageName;</span>
+                    // Get the full absolute path to the image
+<span class="nc" id="L229">                    Path imageFullPath = Paths.get(relativeImageUrl).toAbsolutePath();</span>
+<span class="nc" id="L230">                    String imageFullUri = imageFullPath.toUri().toString();// Build the full image Uri</span>
+
+                    ImageView ivPro;
+                    try {
+<span class="nc" id="L234">                        ivPro = new ImageView(new Image(imageFullUri, 50,45, true,true)); // Attempt to load the product image</span>
+<span class="nc" id="L235">                    } catch (Exception e) {</span>
+                        // If loading fails, use a default image directly from the resources folder
+<span class="nc" id="L237">                        ivPro = new ImageView(new Image(&quot;imageHolder.jpg&quot;,50,45,true,true)); // Directly load from resources</span>
+<span class="nc" id="L238">                    }</span>
+
+<span class="nc" id="L240">                    Label laProToString = new Label(product.toString()); // Create a label for product details</span>
+<span class="nc" id="L241">                    HBox hbox = new HBox(10, ivPro, laProToString); // Put ImageView and label in a horizontal layout</span>
+<span class="nc" id="L242">                    setGraphic(hbox);  // Set the whole row content</span>
+                }
+<span class="nc" id="L244">            }</span>
+        });
+
+<span class="nc" id="L247">        VBox vbSearchPage = new VBox(10, laTitle, hbSearch, vbSearchResult);</span>
+
+<span class="nc" id="L249">        vbSearchPage.setPrefWidth(COLUMN_WIDTH-10);</span>
+<span class="nc" id="L250">        vbSearchPage.setAlignment(Pos.TOP_CENTER);</span>
+
+<span class="nc" id="L252">        return vbSearchPage;</span>
+
+        /** NOTE for make image
+         * user selected image at runtime, like with a FileChooser, you cannot use getResource().
+         * getResource() is only for static files already bundled inside app.
+         * User-selected files are real files on the computer, not inside the app resources.
+         */
+    }
+
+    private VBox createProductFormPage() {
+<span class="nc" id="L262">        cbProductFormMode = new ComboBox&lt;&gt;();</span>
+<span class="nc" id="L263">        cbProductFormMode.setStyle(UIStyle.comboBoxStyle);</span>
+<span class="nc" id="L264">        cbProductFormMode.getItems().addAll(&quot;Edit Existing Product in Stock&quot;, &quot;Add New Product to Stock&quot;);</span>
+        // Set default selected value, so only when value changed trigger setOnAction
+<span class="nc" id="L266">        cbProductFormMode.setValue(&quot;Edit Existing Product in Stock&quot;);</span>
+
+<span class="nc" id="L268">        vbEditProduct = createEditProdcutChild();</span>
+<span class="nc" id="L269">        disableEditProductChild(true); //disable editable component until user selects a product and cilck btnEdit</span>
+<span class="nc" id="L270">        vbNewProduct = createNewProductChild();</span>
+
+        // Initially set the second child (after ComboBox) to editProduct
+<span class="nc" id="L273">        VBox vbProductFormPage = new VBox(10, cbProductFormMode, vbEditProduct);</span>
+
+        // Check selected value and place the corerect child
+        //isImageNameEditable for imageChooser using a single method to differciate from edit/add product
+<span class="nc" id="L277">        cbProductFormMode.setOnAction(actionEvent -&gt; {</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">            if (cbProductFormMode.getValue().equals(&quot;Edit Existing Product in Stock&quot;)) {</span>
+<span class="nc" id="L279">                vbProductFormPage.getChildren().set(1,vbEditProduct);</span>
+<span class="nc" id="L280">                theProFormMode = &quot;EDIT&quot;;</span>
+            }
+<span class="nc bnc" id="L282" title="All 2 branches missed.">            if (cbProductFormMode.getValue().equals(&quot;Add New Product to Stock&quot;)) {</span>
+<span class="nc" id="L283">                vbProductFormPage.getChildren().set(1,vbNewProduct);</span>
+<span class="nc" id="L284">                theProFormMode = &quot;NEW&quot;;</span>
+            }
+<span class="nc" id="L286">        });</span>
+
+<span class="nc" id="L288">        vbProductFormPage.setPrefWidth(COLUMN_WIDTH+20);</span>
+<span class="nc" id="L289">        vbProductFormPage.setAlignment(Pos.TOP_CENTER);</span>
+<span class="nc" id="L290">        return vbProductFormPage;</span>
+    }
+
+
+    private VBox createEditProdcutChild() {
+        //HBox for Id Label and TextField
+<span class="nc" id="L296">        Label laId = new Label(&quot;ID&quot;+&quot; &quot;.repeat(8));</span>
+<span class="nc" id="L297">        laId.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L298">        tfIdEdit = new TextField();</span>
+<span class="nc" id="L299">        tfIdEdit.setEditable(false);</span>
+<span class="nc" id="L300">        tfIdEdit.setStyle(&quot;-fx-font-size: 14px; -fx-pref-width: 100px;&quot;);</span>
+<span class="nc" id="L301">        HBox hbId = new HBox(10, laId, tfIdEdit);</span>
+<span class="nc" id="L302">        hbId.setAlignment(Pos.CENTER_LEFT);</span>
+
+        // HBox for Price Label and TextField
+<span class="nc" id="L305">        Label laPrice = new Label(&quot;Price_£&quot;);</span>
+<span class="nc" id="L306">        laPrice.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L307">        tfPriceEdit = new TextField();</span>
+<span class="nc" id="L308">        tfPriceEdit.setStyle(&quot;-fx-font-size: 14px; -fx-pref-width: 100px;&quot;);</span>
+<span class="nc" id="L309">        HBox hbPrice = new HBox(10, laPrice, tfPriceEdit);</span>
+<span class="nc" id="L310">        hbPrice.setAlignment(Pos.CENTER_LEFT);</span>
+
+        //VBox for id and price
+<span class="nc" id="L313">        VBox vbIdPrice = new VBox(10, hbId, hbPrice);</span>
+
+        // Product Image
+<span class="nc" id="L316">        ivProEdit = new ImageView(&quot;WarehouseImageHolder.jpg&quot;);</span>
+<span class="nc" id="L317">        ivProEdit.setFitWidth(100);</span>
+<span class="nc" id="L318">        ivProEdit.setFitHeight(70);</span>
+<span class="nc" id="L319">        ivProEdit.setPreserveRatio(true); //Image keeps its original shape and fits inside 100×70</span>
+<span class="nc" id="L320">        ivProEdit.setSmooth(true);//make it smooth and nice-looking</span>
+
+        // Image Click Event (Open File Chooser)
+<span class="nc" id="L323">        ivProEdit.setOnMouseClicked(this::imageChooser);</span>
+
+        // HBox for Id, Price, and Image in one row
+<span class="nc" id="L326">        HBox hbIdPriceImage = new HBox(20, vbIdPrice, ivProEdit);</span>
+<span class="nc" id="L327">        hbIdPriceImage.setAlignment(Pos.CENTER_LEFT);</span>
+
+        // Editing stock
+<span class="nc" id="L330">        Label laStock = new Label(&quot;Stock&quot;+&quot; &quot;.repeat(3));</span>
+<span class="nc" id="L331">        laStock.setStyle(UIStyle.labelStyle);</span>
+
+        // TextField current stock
+<span class="nc" id="L334">        tfStockEdit = new TextField();</span>
+<span class="nc" id="L335">        tfStockEdit.setEditable(false);</span>
+<span class="nc" id="L336">        tfStockEdit.setStyle(&quot;-fx-font-size: 14px; -fx-pref-width: 70px;&quot;);</span>
+
+        // TextField Change By
+<span class="nc" id="L339">        tfChangeByEdit = new TextField();</span>
+<span class="nc" id="L340">        tfChangeByEdit.setPromptText(&quot;change by&quot;);</span>
+<span class="nc" id="L341">        tfChangeByEdit.setStyle(&quot;-fx-font-size: 14px; -fx-pref-width: 50px;&quot;);</span>
+
+        // Add and Subtract Buttons for changing stock
+<span class="nc" id="L344">        btnAdd = new Button(&quot;➕&quot;);</span>
+<span class="nc" id="L345">        btnAdd.setStyle(UIStyle.greenFillBtnStyle);</span>
+<span class="nc" id="L346">        btnAdd.setPrefWidth(35);</span>
+<span class="nc" id="L347">        btnAdd.setOnAction(this::buttonClick);</span>
+
+<span class="nc" id="L349">        btnSub = new Button(&quot;➖&quot;);</span>
+<span class="nc" id="L350">        btnSub.setStyle(UIStyle.redFillBtnStyle);</span>
+<span class="nc" id="L351">        btnSub.setPrefWidth(35);</span>
+<span class="nc" id="L352">        btnSub.setOnAction(this::buttonClick);</span>
+
+        //Hbox for all things related to edit stock
+<span class="nc" id="L355">        HBox hbStock = new HBox(10, laStock, tfStockEdit,tfChangeByEdit, btnAdd,btnSub);</span>
+<span class="nc" id="L356">        hbStock.setAlignment(Pos.CENTER_LEFT);</span>
+
+        // VBox for Description label and TextArea
+<span class="nc" id="L359">        Label laDes = new Label(&quot;Description:&quot;);</span>
+<span class="nc" id="L360">        laDes.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L361">        taDescriptionEdit = new TextArea();</span>
+<span class="nc" id="L362">        taDescriptionEdit.setPrefSize(COLUMN_WIDTH-20, 20);</span>
+<span class="nc" id="L363">        taDescriptionEdit.setWrapText(true);</span>
+<span class="nc" id="L364">        taDescriptionEdit.setStyle(UIStyle.textFiledStyle);</span>
+<span class="nc" id="L365">        VBox vbDescription = new VBox(laDes, taDescriptionEdit);</span>
+<span class="nc" id="L366">        vbDescription.setAlignment(Pos.CENTER_LEFT);</span>
+
+        // OK &amp; Clear Buttons
+<span class="nc" id="L369">        btnCancelEdit = new Button(&quot;Cancel&quot;);</span>
+<span class="nc" id="L370">        btnCancelEdit.setStyle(UIStyle.grayFillBtnStyle);</span>
+<span class="nc" id="L371">        btnCancelEdit.setPrefWidth(100);</span>
+<span class="nc" id="L372">        btnCancelEdit.setOnAction(this::buttonClick);</span>
+
+<span class="nc" id="L374">        btnSubmitEdit = new Button(&quot;Submit&quot;);</span>
+<span class="nc" id="L375">        btnSubmitEdit.setStyle(UIStyle.blueFillBtnStyle);</span>
+<span class="nc" id="L376">        btnSubmitEdit.setPrefWidth(100);</span>
+<span class="nc" id="L377">        btnSubmitEdit.setOnAction(this::buttonClick);</span>
+
+        // HBox for OK &amp; Cancel Buttons
+<span class="nc" id="L380">        HBox hbOkCancelBtns = new HBox(15, btnCancelEdit, btnSubmitEdit);</span>
+<span class="nc" id="L381">        hbOkCancelBtns.setAlignment(Pos.CENTER);</span>
+        //hbOkCancelBtns.setPadding(new Insets(5));
+
+        // Main Layout
+<span class="nc" id="L385">        VBox vbEditStockChild = new VBox(10, hbIdPriceImage, hbStock, vbDescription, hbOkCancelBtns);</span>
+<span class="nc" id="L386">        vbEditStockChild.setStyle(UIStyle.manageStockChildStyle);</span>
+<span class="nc" id="L387">        return vbEditStockChild;</span>
+    }
+
+
+    private VBox createNewProductChild() {
+        //HBox for Id Label and TextField
+<span class="nc" id="L393">        Label laId = new Label(&quot;ID&quot;+ &quot; &quot;.repeat(9));</span>
+<span class="nc" id="L394">        laId.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L395">        tfIdNewPro = new TextField();</span>
+<span class="nc" id="L396">        tfIdNewPro.setStyle(&quot;-fx-font-size: 14px; -fx-pref-width: 100px;&quot;);</span>
+<span class="nc" id="L397">        HBox hbId = new HBox(10, laId, tfIdNewPro);</span>
+<span class="nc" id="L398">        hbId.setAlignment(Pos.CENTER_LEFT);</span>
+
+        // HBox for Price Label and TextField
+<span class="nc" id="L401">        Label laPrice = new Label(&quot;Price_£ &quot;);</span>
+<span class="nc" id="L402">        laPrice.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L403">        tfPriceNewPro = new TextField();</span>
+<span class="nc" id="L404">        tfPriceNewPro.setStyle(&quot;-fx-font-size: 14px; -fx-pref-width: 100px;&quot;);</span>
+<span class="nc" id="L405">        HBox hbPrice = new HBox(10, laPrice, tfPriceNewPro);</span>
+<span class="nc" id="L406">        hbPrice.setAlignment(Pos.CENTER_LEFT);</span>
+
+        //  HBox for stock label and textFiled
+<span class="nc" id="L409">        Label laStock = new Label(&quot;Stock&quot; +&quot; &quot;.repeat(4));</span>
+<span class="nc" id="L410">        laStock.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L411">        tfStockNewPro = new TextField();</span>
+<span class="nc" id="L412">        tfStockNewPro.setStyle(&quot;-fx-font-size: 14px; -fx-pref-width: 100px;&quot;);</span>
+<span class="nc" id="L413">        HBox hbStock = new HBox(10, laStock, tfStockNewPro);</span>
+<span class="nc" id="L414">        hbStock.setAlignment(Pos.CENTER_LEFT);</span>
+
+        //VBox for id, price,stock
+<span class="nc" id="L417">        VBox vbIdPriceStock = new VBox(10, hbId, hbPrice,hbStock);</span>
+
+        // VBox for Product Image and name keyword
+<span class="nc" id="L420">        ivProNewPro = new ImageView(&quot;WarehouseImageHolder.jpg&quot;);</span>
+<span class="nc" id="L421">        ivProNewPro.setFitWidth(100);</span>
+<span class="nc" id="L422">        ivProNewPro.setFitHeight(70);</span>
+<span class="nc" id="L423">        ivProNewPro.setPreserveRatio(true); //Image keeps its original shape and fits inside 100×70</span>
+<span class="nc" id="L424">        ivProNewPro.setSmooth(true);//make it smooth and nice-looking</span>
+
+        // Add tooltip to indicate image selection is optional
+<span class="nc" id="L427">        Tooltip imageTooltip = new Tooltip(&quot;Click to select an image file (optional - default image will be used if not selected)&quot;);</span>
+<span class="nc" id="L428">        Tooltip.install(ivProNewPro, imageTooltip);</span>
+
+        // Image Click Event (Open File Chooser)
+<span class="nc" id="L431">        ivProNewPro.setOnMouseClicked(this::imageChooser);</span>
+        //Hbox for id,price,stock,image
+<span class="nc" id="L433">        HBox hbIdPriceStockImage = new HBox(20, vbIdPriceStock, ivProNewPro);</span>
+<span class="nc" id="L434">        hbIdPriceStockImage.setAlignment(Pos.CENTER_LEFT);</span>
+
+        // VBox for Description label and TextArea
+<span class="nc" id="L437">        Label laDes = new Label(&quot;Description:&quot;);</span>
+<span class="nc" id="L438">        laDes.setStyle(UIStyle.labelStyle);</span>
+<span class="nc" id="L439">        taDescriptionNewPro = new TextArea();</span>
+<span class="nc" id="L440">        taDescriptionNewPro.setPrefSize(COLUMN_WIDTH-20, 20);</span>
+<span class="nc" id="L441">        taDescriptionNewPro.setWrapText(true);</span>
+<span class="nc" id="L442">        taDescriptionNewPro.setStyle(UIStyle.textFiledStyle);</span>
+<span class="nc" id="L443">        VBox vbDescription = new VBox(laDes, taDescriptionNewPro);</span>
+<span class="nc" id="L444">        vbDescription.setAlignment(Pos.CENTER_LEFT);</span>
+
+        // OK &amp; Cancel Buttons
+<span class="nc" id="L447">        Button btnClear = new Button(&quot;Cancel&quot;);</span>
+<span class="nc" id="L448">        btnClear.setStyle(UIStyle.grayFillBtnStyle);</span>
+<span class="nc" id="L449">        btnClear.setPrefWidth(100);</span>
+<span class="nc" id="L450">        btnClear.setOnAction(this::buttonClick);</span>
+
+<span class="nc" id="L452">        Button btnAddNewPro = new Button(&quot;Submit&quot;);</span>
+<span class="nc" id="L453">        btnAddNewPro.setStyle(UIStyle.blueFillBtnStyle);</span>
+<span class="nc" id="L454">        btnAddNewPro.setPrefWidth(100);</span>
+<span class="nc" id="L455">        btnAddNewPro.setOnAction(this::buttonClick);</span>
+        // HBox for OK &amp; clear Buttons
+<span class="nc" id="L457">        HBox hbOkCancelBtns = new HBox(15, btnClear, btnAddNewPro);</span>
+<span class="nc" id="L458">        hbOkCancelBtns.setAlignment(Pos.CENTER);</span>
+        //hbOkCancelBtns.setPadding(new Insets(5));
+
+        // Main Layout
+<span class="nc" id="L462">        VBox vbAddNewProductToStockChild = new VBox(10, hbIdPriceStockImage, vbDescription, hbOkCancelBtns);</span>
+<span class="nc" id="L463">        vbAddNewProductToStockChild.setStyle(UIStyle.manageStockChildStyle1);</span>
+<span class="nc" id="L464">        return vbAddNewProductToStockChild;</span>
+    }
+
+    //disable editable controls before user select a product and click the button edit
+    private void disableEditProductChild(boolean disable) {
+<span class="nc" id="L469">        tfPriceEdit.setDisable(disable);</span>
+<span class="nc" id="L470">        tfChangeByEdit.setDisable(disable);</span>
+<span class="nc" id="L471">        btnAdd.setDisable(disable);</span>
+<span class="nc" id="L472">        btnSub.setDisable(disable);</span>
+<span class="nc" id="L473">        ivProEdit.setDisable(disable);</span>
+<span class="nc" id="L474">        taDescriptionEdit.setDisable(disable);</span>
+<span class="nc" id="L475">        btnCancelEdit.setDisable(disable);</span>
+<span class="nc" id="L476">        btnSubmitEdit.setDisable(disable);</span>
+<span class="nc" id="L477">    }</span>
+
+
+    private void buttonClick(ActionEvent event)  {
+<span class="nc" id="L481">        Button btn= (Button)event.getSource();</span>
+<span class="nc" id="L482">        String action = btn.getText();</span>
+
+        //only when user click btnEidt and a product was selected, enable editable field of editChild
+<span class="nc bnc" id="L485" title="All 4 branches missed.">        if(action.equals(&quot;Edit&quot;) &amp;&amp; obrLvProducts.getSelectionModel().getSelectedItem()!=null) {</span>
+<span class="nc" id="L486">            disableEditProductChild(false); //a product was selected, enable editChild</span>
+<span class="nc" id="L487">            cbProductFormMode.setValue(&quot;Edit Existing Product in Stock&quot;); //show EditChild</span>
+        }
+
+        try{
+<span class="nc" id="L491">            controller.process(action);</span>
+        }
+<span class="nc" id="L493">        catch (Exception e) {</span>
+<span class="nc" id="L494">            throw new RuntimeException(e);</span>
+<span class="nc" id="L495">        }</span>
+
+<span class="nc" id="L497">    }</span>
+
+    private void imageChooser(MouseEvent event) {
+<span class="nc" id="L500">        FileChooser fileChooser = new FileChooser();</span>
+<span class="nc" id="L501">        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(&quot;Images&quot;, &quot;*.png&quot;, &quot;*.jpg&quot;, &quot;*.jpeg&quot;));</span>
+<span class="nc" id="L502">        File file = fileChooser.showOpenDialog(null); //return absolute fullpath of the user selected file</span>
+                                                              //eg C:/Users/John/Pictures/sample.jpg
+<span class="nc bnc" id="L504" title="All 2 branches missed.">        if (file != null) {</span>
+
+<span class="nc bnc" id="L506" title="All 2 branches missed.">            if (theProFormMode.equals(&quot;EDIT&quot;)) {</span>
+<span class="nc" id="L507">                isUserSelectedImageEdit = true;</span>
+                // Set image preview
+<span class="nc" id="L509">                ivProEdit.setImage(new Image(file.toURI().toString()));</span>
+                // Get the selected image path, and name
+<span class="nc" id="L511">                userSelectedImageUriEdit = file.getAbsolutePath(); //eg C:\Users\shan\Desktop\mark.jpg</span>
+                //file.getParent();  // Get the folder
+<span class="nc" id="L513">                System.out.println(&quot;Selected Image Path: &quot; + userSelectedImageUriEdit);</span>
+<span class="nc" id="L514">                System.out.println(&quot;Selected Image name: &quot; + file.getName());</span>
+            }
+<span class="nc bnc" id="L516" title="All 2 branches missed.">            if (theProFormMode.equals(&quot;NEW&quot;)) {</span>
+                // Set image preview
+<span class="nc" id="L518">                ivProNewPro.setImage(new Image(file.toURI().toString()));</span>
+<span class="nc" id="L519">                imageUriNewPro = file.getAbsolutePath();</span>
+<span class="nc" id="L520">                System.out.println(&quot;Selected Image Path: &quot; + imageUriNewPro);</span>
+<span class="nc" id="L521">                System.out.println(&quot;Selected Image name: &quot; + file.getName());</span>
+            }
+        }
+<span class="nc" id="L524">    }</span>
+
+    //update the product listVew of serachPage
+    void updateObservableProductList( ArrayList&lt;Product&gt; productList) {
+<span class="nc" id="L528">        int proCounter = productList.size();</span>
+<span class="nc" id="L529">        System.out.println(proCounter);</span>
+<span class="nc" id="L530">        laSearchSummary.setText(proCounter + &quot; products found&quot;);</span>
+<span class="nc" id="L531">        laSearchSummary.setVisible(true);</span>
+<span class="nc" id="L532">        obeProductList.clear();</span>
+<span class="nc" id="L533">        obeProductList.addAll(productList);</span>
+<span class="nc" id="L534">    }</span>
+
+    void updateBtnAddSub(String stock){
+<span class="nc" id="L537">        tfStockEdit.setText(stock);</span>
+<span class="nc" id="L538">        tfChangeByEdit.clear();</span>
+<span class="nc" id="L539">    }</span>
+
+    //update interface of editing existing product in stock
+    void updateEditProductChild(String id, String price, String stock, String des, String imageUrl) {
+<span class="nc" id="L543">        tfIdEdit.setText(id);</span>
+<span class="nc" id="L544">        tfPriceEdit.setText(price);</span>
+<span class="nc" id="L545">        tfStockEdit.setText(stock);</span>
+<span class="nc" id="L546">        taDescriptionEdit.setText(des);</span>
+
+<span class="nc" id="L548">        System.out.println(imageUrl);</span>
+        try{
+<span class="nc" id="L550">            ivProEdit.setImage(new Image(imageUrl));  // Attempt to load the product image</span>
+<span class="nc" id="L551">        } catch (Exception e) {</span>
+            // If loading fails, use a default image directly from the resources folder
+<span class="nc" id="L553">            ivProEdit.setImage(new Image(&quot;imageHolder.jpg&quot;));</span>
+<span class="nc" id="L554">        }</span>
+<span class="nc" id="L555">    }</span>
+
+    void resetEditChild() {
+<span class="nc" id="L558">        tfIdEdit.setText(&quot;&quot;);</span>
+<span class="nc" id="L559">        tfPriceEdit.setText(&quot;&quot;);</span>
+<span class="nc" id="L560">        tfStockEdit.setText(&quot;&quot;);</span>
+<span class="nc" id="L561">        tfChangeByEdit.setText(&quot;&quot;);</span>
+<span class="nc" id="L562">        taDescriptionEdit.setText(&quot;&quot;);</span>
+<span class="nc" id="L563">        ivProEdit.setImage(new Image(&quot;WarehouseImageHolder.jpg&quot;));</span>
+<span class="nc" id="L564">        disableEditProductChild(true);</span>
+<span class="nc" id="L565">    }</span>
+
+    void resetNewProChild() {
+<span class="nc" id="L568">       tfIdNewPro.setText(&quot;&quot;);</span>
+<span class="nc" id="L569">       tfPriceNewPro.setText(&quot;&quot;);</span>
+<span class="nc" id="L570">       tfStockNewPro.setText(&quot;&quot;);</span>
+<span class="nc" id="L571">       taDescriptionNewPro.setText(&quot;&quot;);</span>
+<span class="nc" id="L572">       ivProNewPro.setImage(new Image(&quot;WarehouseImageHolder.jpg&quot;));</span>
+<span class="nc" id="L573">       imageUriNewPro = null; //clear the selcted image</span>
+<span class="nc" id="L574">       System.out.println(&quot;resetNewProChild in view called&quot;);</span>
+<span class="nc" id="L575">    }</span>
+
+    WindowBounds getWindowBounds() {
+<span class="nc" id="L578">        return new WindowBounds(viewWindow.getX(),</span>
+<span class="nc" id="L579">                                viewWindow.getY(),</span>
+<span class="nc" id="L580">                                viewWindow.getWidth(),</span>
+<span class="nc" id="L581">                                viewWindow.getHeight());</span>
+    }
+
+    //   //another way to reset the editChild and NewProChild
+//   // remove the current one then recreate them and add them back
+//    //not use it in this version
+//    public void resetManageStockChild() {
+//        vbManagePage.getChildren().remove(1); // Remove the second child (editChild or addNewProChild)
+//
+//        //Decide which child to recreate and add back
+//        if (theManageType.equals(&quot;edit&quot;)) {
+//            vbEditProChild = editStockChild(); // Recreate the child
+//            vbManagePage.getChildren().add(vbEditProChild);
+//            proListView.requestFocus();
+//            imageSelectedEdit = false;//reset to false if the user canged image in previous editing
+//        }
+//        if (theManageType.equals(&quot;addNew&quot;)) {
+//            vbAddProChild = addNewProductToStockChild();  // Recreate the child
+//            vbManagePage.getChildren().add(vbAddProChild);
+//            tfIdNewPro.requestFocus();
+//            imageSelectedNewPro = false;
+//        }
+//    }
+
+//
+
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

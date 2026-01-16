@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderHub.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.orderManagement</a> &gt; <span class="el_source">OrderHub.java</span></div><h1>OrderHub.java</h1><pre class="source lang-java linenums">package ci553.happyshop.orderManagement;
+
+import ci553.happyshop.catalogue.Order;
+import ci553.happyshop.catalogue.Product;
+import ci553.happyshop.client.orderTracker.OrderTracker;
+import ci553.happyshop.client.picker.PickerModel;
+import ci553.happyshop.storageAccess.DatabaseRW;
+import ci553.happyshop.storageAccess.DatabaseRWFactory;
+import ci553.happyshop.storageAccess.OrderFileManager;
+import ci553.happyshop.utility.StorageLocation;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
+/**
+ * &lt;p&gt;{@code OrderHub} serves as the heart of the ordering system.
+ * This class implements the Singleton pattern to ensure a single instance governs
+ * all order-related logic across the system.&lt;/p&gt;
+ *
+ * &lt;p&gt; It is the central coordinator responsible for managing all orders. It handles:
+ *   Creating and tracking orders
+ *   Maintaining and updating the internal order map, &lt;OrderId, OrderState&gt;
+ *   Delegating file-related operations (e.g., updating state and moving files) to OrderFileManager class
+ *   Loading orders in the &quot;ordered&quot; and &quot;progressing&quot; states from storage during system startup
+ *
+ * &lt;p&gt; OrderHub also follows the Observer pattern: it notifies registered observers such as OrderTracker
+ * and PickerModel whenever the order data changes, keeping the UI and business logic in sync.&lt;/p&gt;
+ *
+ * &lt;p&gt;As the heart of the ordering system, OrderHub connects customers, pickers, and tracker,
+ * managementing logic into a unified workflow.&lt;/p&gt;
+ */
+
+public class OrderHub  {
+    private static OrderHub orderHub; //singleton instance
+
+<span class="fc" id="L48">    private final Path orderedPath = StorageLocation.orderedPath;</span>
+<span class="fc" id="L49">    private final Path progressingPath = StorageLocation.progressingPath;</span>
+<span class="fc" id="L50">    private final Path collectedPath = StorageLocation.collectedPath;</span>
+<span class="fc" id="L51">    private final Path cancelledPath = StorageLocation.cancelledPath;</span>
+
+<span class="fc" id="L53">    private TreeMap&lt;Integer,OrderState&gt; orderMap = new TreeMap&lt;&gt;();</span>
+<span class="fc" id="L54">    private TreeMap&lt;Integer,OrderState&gt; OrderedOrderMap = new TreeMap&lt;&gt;();</span>
+<span class="fc" id="L55">    private TreeMap&lt;Integer,OrderState&gt; progressingOrderMap = new TreeMap&lt;&gt;();</span>
+    
+    /**
+     * Tracks which orders are currently locked by pickers.
+     * This prevents multiple pickers from claiming the same order simultaneously.
+     * The locking mechanism is centralized in OrderHub to ensure thread safety.
+     */
+<span class="fc" id="L62">    private final java.util.Set&lt;Integer&gt; lockedOrderIds = java.util.concurrent.ConcurrentHashMap.newKeySet();</span>
+
+    /**
+     * Unified list to hold all registered OrderObserver instances.
+     * These observers are notified whenever the orderMap is updated,
+     * but each observer is only notified of the parts of the orderMap that are relevant to them.
+     * - OrderTrackers will be notified of the full orderMap, including all orders (ordered, progressing, collected),
+     *   but collected orders are shown for a limited time (10 seconds).
+     * - PickerModels will be notified only of orders in the &quot;ordered&quot; or &quot;progressing&quot; states, filtering out collected orders.
+     * 
+     * @deprecated The separate lists (orderTrackerList, pickerModelList) are maintained for backward compatibility
+     * but new code should use the unified observerList.
+     */
+<span class="fc" id="L75">    private ArrayList&lt;OrderObserver&gt; observerList = new ArrayList&lt;&gt;();</span>
+    
+    /**
+     * @deprecated Use observerList instead. Maintained for backward compatibility.
+     */
+<span class="fc" id="L80">    @Deprecated</span>
+    private ArrayList&lt;OrderTracker&gt; orderTrackerList = new ArrayList&lt;&gt;();
+    
+    /**
+     * @deprecated Use observerList instead. Maintained for backward compatibility.
+     */
+<span class="fc" id="L86">    @Deprecated</span>
+    private ArrayList&lt;PickerModel&gt; pickerModelList = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L89">    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);</span>
+
+    //Singleton pattern
+<span class="fc" id="L92">    private OrderHub() {}</span>
+    public static OrderHub getOrderHub() {
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (orderHub == null)</span>
+<span class="fc" id="L95">            orderHub = new OrderHub();</span>
+<span class="fc" id="L96">            return orderHub;</span>
+    }
+
+    //Creates a new order using the provided list of products.
+    //and also notify picker and orderTracker
+    public Order newOrder(ArrayList&lt;Product&gt; trolley) throws IOException, SQLException {
+<span class="fc" id="L102">        int orderId = OrderCounter.generateOrderId(); //get unique orderId</span>
+<span class="fc" id="L103">        String orderedDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;));</span>
+        //make an Order Object: id, Ordered_state, orderedDateTime, and productsList(trolley)
+<span class="fc" id="L105">        Order theOrder = new Order(orderId,OrderState.Ordered,orderedDateTime,trolley);</span>
+
+        //write order details to file for the orderId in orderedPath (ie. orders/ordered)
+<span class="fc" id="L108">        String orderDetail = theOrder.orderDetails();</span>
+<span class="fc" id="L109">        Path path = orderedPath;</span>
+<span class="fc" id="L110">        OrderFileManager.createOrderFile(path, orderId, orderDetail);</span>
+
+<span class="fc" id="L112">        orderMap.put(orderId, theOrder.getState()); //add the order to orderMap,state is Ordered initially</span>
+<span class="nc" id="L113">        notifyObservers(); //notify all observers using the unified interface</span>
+        // Also call deprecated methods for backward compatibility
+<span class="nc" id="L115">        notifyOrderTrackers();</span>
+<span class="nc" id="L116">        notifyPickerModels();</span>
+        
+<span class="nc" id="L118">        return theOrder;</span>
+    }
+
+    /**
+     * Registers an OrderObserver to receive updates about order changes.
+     * This is the preferred method for registering observers.
+     * 
+     * @param observer the observer to register
+     */
+    public void registerObserver(OrderObserver observer) {
+<span class="pc bpc" id="L128" title="2 of 4 branches missed.">        if (observer != null &amp;&amp; !observerList.contains(observer)) {</span>
+<span class="fc" id="L129">            observerList.add(observer);</span>
+        }
+<span class="fc" id="L131">    }</span>
+
+    /**
+     * Unregisters an OrderObserver so it no longer receives updates.
+     * 
+     * @param observer the observer to unregister
+     */
+    public void unregisterObserver(OrderObserver observer) {
+<span class="nc" id="L139">        observerList.remove(observer);</span>
+<span class="nc" id="L140">    }</span>
+
+    /**
+     * Notifies all registered observers of changes to the order map.
+     * Each observer receives a filtered view of the order map based on
+     * the states they are interested in (via getInterestedStates()).
+     */
+    public void notifyObservers() {
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">        for (OrderObserver observer : observerList) {</span>
+<span class="fc" id="L149">            TreeMap&lt;Integer, OrderState&gt; filteredMap = getFilteredOrderMap(observer);</span>
+<span class="nc" id="L150">            observer.updateOrderMap(filteredMap);</span>
+<span class="nc" id="L151">        }</span>
+<span class="nc" id="L152">    }</span>
+
+    /**
+     * Gets a filtered order map based on the observer's interested states.
+     * If the observer doesn't specify interested states, returns the full map.
+     * 
+     * @param observer the observer requesting the filtered map
+     * @return a filtered TreeMap containing only the states the observer is interested in
+     */
+    private TreeMap&lt;Integer, OrderState&gt; getFilteredOrderMap(OrderObserver observer) {
+<span class="fc" id="L162">        OrderState[] interestedStates = observer.getInterestedStates();</span>
+        
+        // If no specific states requested, return full map
+<span class="pc bpc" id="L165" title="2 of 4 branches missed.">        if (interestedStates == null || interestedStates.length == 0) {</span>
+<span class="nc" id="L166">            return new TreeMap&lt;&gt;(orderMap);</span>
+        }
+        
+        // Filter map to only include interested states
+<span class="fc" id="L170">        TreeMap&lt;Integer, OrderState&gt; filteredMap = new TreeMap&lt;&gt;();</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        for (Map.Entry&lt;Integer, OrderState&gt; entry : orderMap.entrySet()) {</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">            for (OrderState state : interestedStates) {</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">                if (entry.getValue() == state) {</span>
+<span class="fc" id="L174">                    filteredMap.put(entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L175">                    break;</span>
+                }
+            }
+<span class="fc" id="L178">        }</span>
+<span class="fc" id="L179">        return filteredMap;</span>
+    }
+
+    /**
+     * Attempts to lock an order for a picker.
+     * This prevents multiple pickers from claiming the same order simultaneously.
+     * 
+     * @param orderId the order ID to lock
+     * @return true if the order was successfully locked, false if it was already locked
+     */
+    public synchronized boolean lockOrder(int orderId) {
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (lockedOrderIds.contains(orderId)) {</span>
+<span class="nc" id="L191">            return false; // Order is already locked</span>
+        }
+<span class="nc" id="L193">        lockedOrderIds.add(orderId);</span>
+<span class="nc" id="L194">        return true; // Successfully locked the order</span>
+    }
+
+    /**
+     * Unlocks an order, making it available for other pickers.
+     * 
+     * @param orderId the order ID to unlock
+     */
+    public synchronized void unlockOrder(int orderId) {
+<span class="nc" id="L203">        lockedOrderIds.remove(orderId);</span>
+<span class="nc" id="L204">    }</span>
+
+    /**
+     * Checks if an order is currently locked.
+     * 
+     * @param orderId the order ID to check
+     * @return true if the order is locked, false otherwise
+     */
+    public synchronized boolean isOrderLocked(int orderId) {
+<span class="nc" id="L213">        return lockedOrderIds.contains(orderId);</span>
+    }
+
+    /**
+     * Gets the first unlocked order ID from the order map that matches the specified state.
+     * This is used by pickers to find available orders to process.
+     * 
+     * @param state the order state to look for (typically OrderState.Ordered)
+     * @return the first unlocked order ID, or null if no unlocked orders are available
+     */
+    public synchronized Integer getFirstUnlockedOrder(OrderState state) {
+<span class="nc bnc" id="L224" title="All 2 branches missed.">        for (Map.Entry&lt;Integer, OrderState&gt; entry : orderMap.entrySet()) {</span>
+<span class="nc" id="L225">            int orderId = entry.getKey();</span>
+<span class="nc bnc" id="L226" title="All 4 branches missed.">            if (entry.getValue() == state &amp;&amp; !isOrderLocked(orderId)) {</span>
+<span class="nc" id="L227">                return orderId;</span>
+            }
+<span class="nc" id="L229">        }</span>
+<span class="nc" id="L230">        return null;</span>
+    }
+
+    //Registers an OrderTracker to receive updates about changes.
+    // @deprecated Use registerObserver() instead
+    @Deprecated
+    public void registerOrderTracker(OrderTracker orderTracker){
+<span class="nc" id="L237">        orderTrackerList.add(orderTracker);</span>
+<span class="nc" id="L238">        registerObserver(orderTracker); // Also register in unified list</span>
+<span class="nc" id="L239">    }</span>
+    
+    //Notifies all registered observer_OrderTrackers to update and display the latest orderMap.
+    // @deprecated Use notifyObservers() instead
+    @Deprecated
+    public void notifyOrderTrackers(){
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        for(OrderTracker orderTracker : orderTrackerList){</span>
+<span class="nc" id="L246">            orderTracker.setOrderMap(orderMap);</span>
+<span class="nc" id="L247">        }</span>
+<span class="nc" id="L248">    }</span>
+
+    //Registers a PickerModel to receive updates about changes.
+    // @deprecated Use registerObserver() instead
+    @Deprecated
+    public void registerPickerModel(PickerModel pickerModel){
+<span class="fc" id="L254">        pickerModelList.add(pickerModel);</span>
+<span class="fc" id="L255">        registerObserver(pickerModel); // Also register in unified list</span>
+<span class="fc" id="L256">    }</span>
+
+    //notify all pickers to show orderMap (only ordered and progressing states orders)
+    // @deprecated Use notifyObservers() instead
+    @Deprecated
+    public void notifyPickerModels(){
+<span class="nc" id="L262">        TreeMap&lt;Integer,OrderState&gt; orderMapForPicker = new TreeMap&lt;&gt;();</span>
+<span class="nc" id="L263">        progressingOrderMap = filterOrdersByState(OrderState.Progressing);</span>
+<span class="nc" id="L264">        OrderedOrderMap = filterOrdersByState(OrderState.Ordered);</span>
+<span class="nc" id="L265">        orderMapForPicker.putAll(progressingOrderMap);</span>
+<span class="nc" id="L266">        orderMapForPicker.putAll(OrderedOrderMap);</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">        for(PickerModel pickerModel : pickerModelList){</span>
+<span class="nc" id="L268">            pickerModel.setOrderMap(orderMapForPicker);</span>
+<span class="nc" id="L269">        }</span>
+<span class="nc" id="L270">    }</span>
+
+    // Filters orderMap that match the specified state, a helper class used by notifyPickerModel()
+    private TreeMap&lt;Integer, OrderState&gt; filterOrdersByState(OrderState state) {
+<span class="nc" id="L274">        TreeMap&lt;Integer, OrderState&gt; filteredOrderMap = new TreeMap&lt;&gt;(); // New map to hold filtered orders</span>
+        // Loop through the orderMap and add matching orders to filteredOrders
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        for (Map.Entry&lt;Integer, OrderState&gt; entry : orderMap.entrySet()) {</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">            if (entry.getValue() == state) {</span>
+<span class="nc" id="L278">                filteredOrderMap.put(entry.getKey(), entry.getValue());</span>
+            }
+<span class="nc" id="L280">        }</span>
+<span class="nc" id="L281">        return filteredOrderMap;</span>
+    }
+
+    //Changes the state of the specified order, updates its file, and moves it to the appropriate folder.
+    //trigger by PickerModel
+    public void changeOrderStateMoveFile(int orderId, OrderState newState) throws IOException {
+<span class="nc bnc" id="L287" title="All 4 branches missed.">        if(orderMap.containsKey(orderId) &amp;&amp; !orderMap.get(orderId).equals(newState))</span>
+        {
+            //change orderState in OrderMap, notify all observers
+<span class="nc" id="L290">            orderMap.put(orderId, newState);</span>
+<span class="nc" id="L291">            notifyObservers(); //notify all observers using the unified interface</span>
+            // Also call deprecated methods for backward compatibility
+<span class="nc" id="L293">            notifyOrderTrackers();</span>
+<span class="nc" id="L294">            notifyPickerModels();</span>
+
+            //change orderState in order file and move the file to new state folder
+<span class="nc bnc" id="L297" title="All 4 branches missed.">            switch(newState){</span>
+                case OrderState.Progressing:
+<span class="nc" id="L299">                    OrderFileManager.updateAndMoveOrderFile(orderId, newState,orderedPath,progressingPath);</span>
+<span class="nc" id="L300">                    break;</span>
+                case OrderState.Collected:
+<span class="nc" id="L302">                    OrderFileManager.updateAndMoveOrderFile(orderId, newState,progressingPath,collectedPath);</span>
+<span class="nc" id="L303">                    unlockOrder(orderId); // Unlock the order when it's collected</span>
+<span class="nc" id="L304">                    removeCollectedOrder(orderId); //Scheduled removal</span>
+<span class="nc" id="L305">                    break;</span>
+                case OrderState.Cancelled:
+<span class="nc" id="L307">                    OrderFileManager.updateAndMoveOrderFile(orderId, newState,orderedPath,cancelledPath);</span>
+<span class="nc" id="L308">                    unlockOrder(orderId); // Unlock the order if it was cancelled</span>
+                    break;
+            }
+        }
+<span class="nc" id="L312">    }</span>
+
+    /**
+     * Removes collected orders from the system after they have been collected for 10 seconds.
+     *
+     * This ensures that collected orders are cleared from the active order pool and are no longer displayed
+     * by the OrderTracker after the brief period. This keeps the system focused on orders in the
+     * &quot;ordered&quot; and &quot;progressing&quot; states.
+     * The 10-second delay gives enough time for any final updates, and providing a short window for review of completed orders.
+     */
+    private void removeCollectedOrder(int orderId) {
+<span class="nc bnc" id="L323" title="All 2 branches missed.">        if (orderMap.containsKey(orderId)) {</span>
+            // Schedule removal after a few seconds
+<span class="nc" id="L325">            scheduler.schedule(() -&gt; {</span>
+<span class="nc" id="L326">                orderMap.remove(orderId); //remove collected order</span>
+<span class="nc" id="L327">                System.out.println(&quot;Order &quot; + orderId + &quot; removed from tracker and OrdersMap.&quot;);</span>
+<span class="nc" id="L328">                notifyObservers(); //notify all observers using the unified interface</span>
+<span class="nc" id="L329">                notifyOrderTrackers(); // Also call deprecated method for backward compatibility</span>
+<span class="nc" id="L330">            }, 10, TimeUnit.SECONDS );</span>
+        }
+<span class="nc" id="L332">    }</span>
+
+    // Reads details of an order for display in the picker once they started preparing the order.
+    public String  getOrderDetailForPicker(int orderId) throws IOException {
+<span class="nc" id="L336">        OrderState state = orderMap.get(orderId);</span>
+<span class="nc bnc" id="L337" title="All 2 branches missed.">        if(state.equals(OrderState.Progressing)) {</span>
+<span class="nc" id="L338">            return OrderFileManager.readOrderFile(progressingPath,orderId);</span>
+        }else{
+<span class="nc" id="L340">            return &quot;the fuction is only for picker&quot;;</span>
+        }
+    }
+
+    /**
+     * Cancels an order that is in &quot;Ordered&quot; state.
+     * Only orders in &quot;Ordered&quot; state can be cancelled (not progressing or collected orders).
+     * 
+     * This method:
+     * 1. Validates that the order exists and is in &quot;Ordered&quot; state
+     * 2. Reads the order file to extract product information
+     * 3. Restores stock for all products in the order
+     * 4. Changes order state to &quot;Cancelled&quot;
+     * 5. Moves the order file to the cancelled folder
+     * 6. Notifies all observers (OrderTrackers and PickerModels)
+     * 
+     * @param orderId The ID of the order to cancel
+     * @return true if cancellation was successful, false if order cannot be cancelled
+     * @throws IOException if there's an error reading/writing order files
+     * @throws SQLException if there's an error restoring stock in the database
+     */
+    public boolean cancelOrder(int orderId) throws IOException, SQLException {
+        // Check if order exists and is in Ordered state (only Ordered orders can be cancelled)
+<span class="pc bpc" id="L363" title="1 of 2 branches missed.">        if(!orderMap.containsKey(orderId)) {</span>
+<span class="fc" id="L364">            System.out.println(&quot;Order &quot; + orderId + &quot; not found.&quot;);</span>
+<span class="fc" id="L365">            return false;</span>
+        }
+        
+<span class="nc" id="L368">        OrderState currentState = orderMap.get(orderId);</span>
+<span class="nc bnc" id="L369" title="All 2 branches missed.">        if(!currentState.equals(OrderState.Ordered)) {</span>
+<span class="nc" id="L370">            System.out.println(&quot;Order &quot; + orderId + &quot; cannot be cancelled. Only orders in 'Ordered' state can be cancelled. Current state: &quot; + currentState);</span>
+<span class="nc" id="L371">            return false;</span>
+        }
+
+        // Read order file to extract product list
+<span class="nc" id="L375">        String orderContent = OrderFileManager.readOrderFile(orderedPath, orderId);</span>
+<span class="nc" id="L376">        ArrayList&lt;Product&gt; productsToRestore = parseProductsFromOrderFile(orderContent);</span>
+
+        // Restore stock for all products in the order
+<span class="nc bnc" id="L379" title="All 2 branches missed.">        if(!productsToRestore.isEmpty()) {</span>
+<span class="nc" id="L380">            DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();</span>
+<span class="nc" id="L381">            databaseRW.restoreStock(productsToRestore);</span>
+<span class="nc" id="L382">            System.out.println(&quot;Stock restored for cancelled order &quot; + orderId);</span>
+        }
+
+        // Change order state to Cancelled and move file
+<span class="nc" id="L386">        changeOrderStateMoveFile(orderId, OrderState.Cancelled);</span>
+        
+<span class="nc" id="L388">        System.out.println(&quot;Order &quot; + orderId + &quot; has been cancelled successfully.&quot;);</span>
+<span class="nc" id="L389">        return true;</span>
+    }
+
+    /**
+     * Parses product information from an order file content.
+     * Extracts product IDs, quantities, and other details from the Items section.
+     * 
+     * @param orderContent The full content of the order file
+     * @return A list of Product objects with ordered quantities set
+     */
+    private ArrayList&lt;Product&gt; parseProductsFromOrderFile(String orderContent) throws SQLException {
+<span class="nc" id="L400">        ArrayList&lt;Product&gt; products = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L401">        DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();</span>
+        
+<span class="nc" id="L403">        String[] lines = orderContent.split(&quot;\n&quot;);</span>
+<span class="nc" id="L404">        boolean inItemsSection = false;</span>
+        
+<span class="nc bnc" id="L406" title="All 2 branches missed.">        for(String line : lines) {</span>
+<span class="nc" id="L407">            line = line.trim();</span>
+            
+            // Start parsing when we reach the Items section
+<span class="nc bnc" id="L410" title="All 2 branches missed.">            if(line.equals(&quot;Items:&quot;)) {</span>
+<span class="nc" id="L411">                inItemsSection = true;</span>
+<span class="nc" id="L412">                continue;</span>
+            }
+            
+            // Stop parsing when we reach the Total line or separator
+<span class="nc bnc" id="L416" title="All 6 branches missed.">            if(inItemsSection &amp;&amp; (line.startsWith(&quot;-&quot;) || line.startsWith(&quot;Total&quot;))) {</span>
+<span class="nc" id="L417">                break;</span>
+            }
+            
+            // Parse product lines: &quot; 0001 Description ( 2) £ 100.00&quot;
+<span class="nc bnc" id="L421" title="All 4 branches missed.">            if(inItemsSection &amp;&amp; !line.isEmpty()) {</span>
+                try {
+                    // Extract product ID (first 7 characters, trimmed)
+<span class="nc" id="L424">                    String productId = line.substring(0, 7).trim();</span>
+                    
+                    // Find quantity in parentheses: ( 2)
+<span class="nc" id="L427">                    int quantityStart = line.indexOf('(');</span>
+<span class="nc" id="L428">                    int quantityEnd = line.indexOf(')');</span>
+<span class="nc bnc" id="L429" title="All 4 branches missed.">                    if(quantityStart != -1 &amp;&amp; quantityEnd != -1) {</span>
+<span class="nc" id="L430">                        String quantityStr = line.substring(quantityStart + 1, quantityEnd).trim();</span>
+<span class="nc" id="L431">                        int quantity = Integer.parseInt(quantityStr);</span>
+                        
+                        // Look up product from database to get full details
+<span class="nc" id="L434">                        Product product = databaseRW.searchByProductId(productId);</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">                        if(product != null) {</span>
+<span class="nc" id="L436">                            product.setOrderedQuantity(quantity);</span>
+<span class="nc" id="L437">                            products.add(product);</span>
+                        }
+                    }
+<span class="nc" id="L440">                } catch(Exception e) {</span>
+<span class="nc" id="L441">                    System.err.println(&quot;Error parsing product line: &quot; + line + &quot; - &quot; + e.getMessage());</span>
+<span class="nc" id="L442">                }</span>
+            }
+        }
+        
+<span class="nc" id="L446">        return products;</span>
+    }
+
+    //Initializes the internal order map by loading the uncollected orders from the file system.
+    // Called during system startup by the Main class.
+    public void initializeOrderMap(){
+<span class="nc" id="L452">        ArrayList&lt;Integer&gt; orderedIds = orderIdsLoader(orderedPath);</span>
+<span class="nc" id="L453">        ArrayList&lt;Integer&gt; progressingIds = orderIdsLoader(progressingPath);</span>
+<span class="nc bnc" id="L454" title="All 2 branches missed.">        if(orderedIds.size()&gt;0){</span>
+<span class="nc bnc" id="L455" title="All 2 branches missed.">            for(Integer orderId : orderedIds){</span>
+<span class="nc" id="L456">                orderMap.put(orderId, OrderState.Ordered);</span>
+<span class="nc" id="L457">            }</span>
+        }
+<span class="nc bnc" id="L459" title="All 2 branches missed.">        if(progressingIds.size()&gt;0){</span>
+<span class="nc bnc" id="L460" title="All 2 branches missed.">            for(Integer orderId : progressingIds){</span>
+<span class="nc" id="L461">                orderMap.put(orderId, OrderState.Progressing);</span>
+<span class="nc" id="L462">            }</span>
+        }
+<span class="nc" id="L464">        notifyObservers(); //notify all observers using the unified interface</span>
+        // Also call deprecated methods for backward compatibility
+<span class="nc" id="L466">        notifyOrderTrackers();</span>
+<span class="nc" id="L467">        notifyPickerModels();</span>
+<span class="nc" id="L468">        System.out.println(&quot;orderMap initilized. &quot;+ orderMap.size() + &quot; orders in total, including:&quot;);</span>
+<span class="nc" id="L469">        System.out.println( orderedIds.size() + &quot; Ordered orders, &quot; +progressingIds.size() + &quot; Progressing orders &quot; );</span>
+<span class="nc" id="L470">    }</span>
+
+    // Loads a list of order IDs from the specified directory.
+    // Used internally by initializeOrderMap().
+    private ArrayList&lt;Integer&gt; orderIdsLoader(Path dir) {
+<span class="nc" id="L475">        ArrayList&lt;Integer&gt; orderIds = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L477" title="All 4 branches missed.">        if (Files.exists(dir) &amp;&amp; Files.isDirectory(dir)) {</span>
+<span class="nc" id="L478">            try (Stream&lt;Path&gt; fileStream = Files.list(dir)) {</span>
+                // Process the stream without checking it separately
+<span class="nc" id="L480">                List&lt;Path&gt; files = fileStream.filter(Files::isRegularFile).toList();</span>
+
+<span class="nc bnc" id="L482" title="All 2 branches missed.">                if (files.isEmpty()) {</span>
+<span class="nc" id="L483">                    System.out.println(dir + &quot; is empty&quot;);</span>
+                } else {
+<span class="nc bnc" id="L485" title="All 2 branches missed.">                    for (Path file : files) {</span>
+<span class="nc" id="L486">                        String fileName = file.getFileName().toString();</span>
+<span class="nc bnc" id="L487" title="All 2 branches missed.">                        if (fileName.endsWith(&quot;.txt&quot;)) { // Ensure it's a .txt file</span>
+                            try {
+<span class="nc" id="L489">                                int orderId = Integer.parseInt(fileName.substring(0, fileName.lastIndexOf('.')));</span>
+<span class="nc" id="L490">                                orderIds.add(orderId);</span>
+<span class="nc" id="L491">                                System.out.println(orderId);</span>
+<span class="nc" id="L492">                            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L493">                                System.out.println(&quot;Invalid file name: &quot; + fileName);</span>
+<span class="nc" id="L494">                            }</span>
+                        }
+<span class="nc" id="L496">                    }</span>
+                }
+<span class="nc" id="L498">            } catch (IOException e) {</span>
+<span class="nc" id="L499">                System.out.println(&quot;Error reading &quot; + dir + &quot;, &quot; + e.getMessage());</span>
+<span class="nc" id="L500">            }</span>
+        } else {
+<span class="nc" id="L502">            System.out.println(dir + &quot; does not exist.&quot;);</span>
+        }
+<span class="nc" id="L504">        return orderIds;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

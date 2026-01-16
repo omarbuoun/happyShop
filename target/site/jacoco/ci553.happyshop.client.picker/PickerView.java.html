@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PickerView.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.picker</a> &gt; <span class="el_source">PickerView.java</span></div><h1>PickerView.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.picker;
+
+import ci553.happyshop.utility.UIStyle;
+import ci553.happyshop.utility.WinPosManager;
+import javafx.event.ActionEvent;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+import java.io.IOException;
+
+/**
+ * The Order Picker window is for staff to prepare customer's order.
+ * It contains two root views:
+ * 1. vbOrderMapRoot - the default view, displaying available orders awaiting assignment.
+ * 2. vbOrderDetailRoot - displayed once a picker is assigned an order, allowing them to view
+ *    and prepare the order.
+ *
+ * The window initially shows the orderMapRoot.
+ * Once an order is assigned to a picker,the view switches to orderDetailToot.
+ * The view switches to orderMapRoot for the next task after the order is prepared and collected by customer.
+ */
+
+<span class="nc" id="L26">public class PickerView  {</span>
+    public PickerController pickerController;
+
+<span class="nc" id="L29">    private final int WIDTH = UIStyle.pickerWinWidth;</span>
+<span class="nc" id="L30">    private final int HEIGHT = UIStyle.pickerWinHeight;</span>
+
+    private Scene scene;
+    private VBox vbOrderMapRoot;
+    private VBox vbOrderDetailRoot;
+
+    //Three controllers needs updating when program going on
+<span class="nc" id="L37">    private TextArea taOrderMap = new TextArea();</span>
+          // TextArea for displaying a list of orders and their states(orderId → state)
+<span class="nc" id="L39">    private TextArea taOrderDetail = new TextArea();</span>
+        // TextArea for displaying detailed information about the selected order after it is assigned to the picker.
+    private Label laDetailRootTitle;
+       // Label used as the title for the Order Detail section.
+       // Reminds the picker not to close the window if the order hasn't been collected by the customer.
+
+    public void start(Stage window) {
+<span class="nc" id="L46">        vbOrderMapRoot = createOrderMapRoot();</span>
+<span class="nc" id="L47">        vbOrderDetailRoot = createOrderDetailRoot();</span>
+<span class="nc" id="L48">        scene = new Scene(vbOrderMapRoot, WIDTH, HEIGHT);</span>
+<span class="nc" id="L49">        window.setScene(scene);</span>
+<span class="nc" id="L50">        window.setTitle(&quot;🛒 HappyShop Order Picker&quot;);</span>
+<span class="nc" id="L51">        WinPosManager.registerWindow(window,WIDTH,HEIGHT); //calculate position x and y for this window</span>
+<span class="nc" id="L52">        window.show();</span>
+
+        // Set the window close request to prevent closing if the order is not collected
+<span class="nc" id="L55">        window.setOnCloseRequest(event -&gt; {</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">            if (!taOrderDetail.getText().equals(&quot;&quot;)) {</span>
+<span class="nc" id="L57">                event.consume(); // Prevent window from closing</span>
+<span class="nc" id="L58">                laDetailRootTitle.setText(&quot;Pls complete the order before closing.&quot;);</span>
+            }
+<span class="nc" id="L60">        });</span>
+<span class="nc" id="L61">    }</span>
+
+    private VBox createOrderMapRoot() {
+<span class="nc" id="L64">        Label laOrderMapRootTitle = new Label(&quot;Orders Waiting for Processing&quot;);</span>
+<span class="nc" id="L65">        laOrderMapRootTitle.setStyle(UIStyle.labelTitleStyle);</span>
+
+<span class="nc" id="L67">        taOrderMap.setEditable(false);</span>
+<span class="nc" id="L68">        taOrderMap.setPrefSize(WIDTH, HEIGHT - 100);</span>
+<span class="nc" id="L69">        taOrderMap.setStyle(UIStyle.textFiledStyle);</span>
+
+<span class="nc" id="L71">        Button btnProgressing = new Button(&quot;Progressing&quot;);</span>
+<span class="nc" id="L72">        btnProgressing.setOnAction(this::buttonClicked);</span>
+<span class="nc" id="L73">        btnProgressing.setStyle(UIStyle.buttonStyle);</span>
+
+<span class="nc" id="L75">        VBox vbOrdersListRoot = new VBox(15, laOrderMapRootTitle, taOrderMap, btnProgressing);</span>
+<span class="nc" id="L76">        vbOrdersListRoot.setAlignment(Pos.TOP_CENTER);</span>
+<span class="nc" id="L77">        vbOrdersListRoot.setStyle(UIStyle.rootStyleYellow);</span>
+
+<span class="nc" id="L79">        return vbOrdersListRoot;</span>
+    }
+
+    private VBox createOrderDetailRoot() {
+<span class="nc" id="L83">        laDetailRootTitle = new Label(&quot;Progressing Order Details&quot;);</span>
+<span class="nc" id="L84">        laDetailRootTitle.setStyle(UIStyle.labelTitleStyle);</span>
+
+<span class="nc" id="L86">        taOrderDetail.setEditable(false);</span>
+<span class="nc" id="L87">        taOrderDetail.setPrefSize(WIDTH, HEIGHT - 100);</span>
+<span class="nc" id="L88">        taOrderDetail.setText(&quot;Order details&quot;);</span>
+<span class="nc" id="L89">        taOrderDetail.setStyle(UIStyle.textFiledStyle);</span>
+
+<span class="nc" id="L91">        Button btnCollected = new Button(&quot;Customer Collected&quot;);</span>
+<span class="nc" id="L92">        btnCollected.setOnAction(this::buttonClicked);</span>
+<span class="nc" id="L93">        btnCollected.setStyle(UIStyle.buttonStyle);</span>
+
+<span class="nc" id="L95">        VBox vbOrderDetailsRoot = new VBox(15, laDetailRootTitle, taOrderDetail, btnCollected);</span>
+<span class="nc" id="L96">        vbOrderDetailsRoot.setAlignment(Pos.TOP_CENTER);</span>
+<span class="nc" id="L97">        vbOrderDetailsRoot.setStyle(UIStyle.rootStyleBlue);</span>
+
+<span class="nc" id="L99">        return vbOrderDetailsRoot;</span>
+    }
+
+    private void buttonClicked(ActionEvent event) {
+<span class="nc" id="L103">        Button button = (Button) event.getSource();</span>
+<span class="nc" id="L104">        String btnText = button.getText();</span>
+        try {
+            // Based on the button's text, performs the appropriate action and switches the displayed root.
+<span class="nc bnc" id="L107" title="All 3 branches missed.">            switch (btnText) {</span>
+                case &quot;Progressing&quot;:
+<span class="nc" id="L109">                    scene.setRoot(vbOrderDetailRoot); // switch to OrderDetailRoot</span>
+<span class="nc" id="L110">                    pickerController.doProgressing();</span>
+<span class="nc" id="L111">                    break;</span>
+
+                case &quot;Customer Collected&quot;:
+<span class="nc" id="L114">                    pickerController.doCollected();</span>
+<span class="nc" id="L115">                    scene.setRoot(vbOrderMapRoot); // switch back to orderMapRoot</span>
+                    break;
+            }
+<span class="nc" id="L118">        } catch (IOException e) {</span>
+<span class="nc" id="L119">            throw new RuntimeException(&quot;Failed to handle button action: &quot; + btnText, e);</span>
+<span class="nc" id="L120">        }</span>
+<span class="nc" id="L121">    }</span>
+
+    void update(String strOrderMap, String strOrderDetail) {
+<span class="nc" id="L124">        taOrderMap.setText(strOrderMap);</span>
+<span class="nc" id="L125">        taOrderDetail.setText(strOrderDetail);</span>
+<span class="nc" id="L126">        laDetailRootTitle.setText(&quot;Progressing Order Details&quot;);</span>
+<span class="nc" id="L127">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

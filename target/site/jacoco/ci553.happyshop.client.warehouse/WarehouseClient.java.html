@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WarehouseClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.warehouse</a> &gt; <span class="el_source">WarehouseClient.java</span></div><h1>WarehouseClient.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.warehouse;
+
+import ci553.happyshop.storageAccess.DatabaseRW;
+import ci553.happyshop.storageAccess.DatabaseRWFactory;
+import javafx.application.Application;
+import javafx.stage.Stage;
+
+/**
+ * A standalone Warehouse client that can be run independently without launching the full system.
+ * It is fully functional on its own.
+ */
+
+<span class="nc" id="L13">public class WarehouseClient extends Application {</span>
+
+    public static void main(String[] args) {
+<span class="nc" id="L16">        launch(args);</span>
+<span class="nc" id="L17">    }</span>
+
+    /**
+     * Initializes the Warehouse client's Model, View, and Controller,and links them together for communication.
+     * It also creates the DatabaseRW instance via the DatabaseRWFactory and injects it into the Model.
+     * Once the components are linked, the warehouse interface (view) is started.
+     *
+     * Also creates the dependent HistoryWindow and AlertSimulator,
+     * which track the position of the Warehouse window and are triggered by the Model when needed.
+     * These components are linked after launching the Warehouse interface.
+     */
+    @Override
+    public void start(Stage window) {
+<span class="nc" id="L30">        WarehouseView view = new WarehouseView();</span>
+<span class="nc" id="L31">        WarehouseController controller = new WarehouseController();</span>
+<span class="nc" id="L32">        WarehouseModel model = new WarehouseModel();</span>
+<span class="nc" id="L33">        DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();</span>
+
+<span class="nc" id="L35">        view.controller = controller;</span>
+<span class="nc" id="L36">        controller.model = model;</span>
+<span class="nc" id="L37">        model.setView(view);</span>
+<span class="nc" id="L38">        model.setDatabaseRW(databaseRW);</span>
+<span class="nc" id="L39">        view.start(window);</span>
+
+<span class="nc" id="L41">        HistoryWindow historyWindow = new HistoryWindow();</span>
+<span class="nc" id="L42">        AlertSimulator alertSimulator = new AlertSimulator();</span>
+
+        // Link after start warehouse interface
+<span class="nc" id="L45">        model.setHistoryWindow(historyWindow);</span>
+<span class="nc" id="L46">        model.setAlertSimulator(alertSimulator);</span>
+<span class="nc" id="L47">        historyWindow.warehouseView = view;</span>
+<span class="nc" id="L48">        alertSimulator.warehouseView = view;</span>
+<span class="nc" id="L49">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

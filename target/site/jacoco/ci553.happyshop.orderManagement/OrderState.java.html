@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderState.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.orderManagement</a> &gt; <span class="el_source">OrderState.java</span></div><h1>OrderState.java</h1><pre class="source lang-java linenums">package ci553.happyshop.orderManagement;
+
+/**
+ * Represents the state of an order in the system.
+ *
+ * This enum defines the possible states an order can be in:
+ * - Ordered: The order was placed by the customer.
+ * - Progressing: A picker is currently preparing the order for customer.
+ * - Collected: The order has been collected by customer from picker
+ * - Cancelled: The order was cancelled by the customer (only orders in &quot;Ordered&quot; state can be cancelled)
+ *
+ * Using an enum provides a type-safe and readable way to represent a fixed set of constant values,
+ * which improves code clarity, reduces errors from invalid strings or integers,
+ * and makes state management more explicit and maintainable across the system.
+ */
+
+<span class="fc" id="L17">public enum OrderState {</span>
+<span class="fc" id="L18">    Ordered,</span>
+<span class="fc" id="L19">    Progressing,</span>
+<span class="fc" id="L20">    Collected,</span>
+<span class="fc" id="L21">    Cancelled</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

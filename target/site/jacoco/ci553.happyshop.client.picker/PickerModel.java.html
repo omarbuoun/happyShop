@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PickerModel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.client.picker</a> &gt; <span class="el_source">PickerModel.java</span></div><h1>PickerModel.java</h1><pre class="source lang-java linenums">package ci553.happyshop.client.picker;
+
+import ci553.happyshop.orderManagement.OrderHub;
+import ci553.happyshop.orderManagement.OrderObserver;
+import ci553.happyshop.orderManagement.OrderState;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.TreeMap;
+
+/**
+ * PickerModel represents the logic order picker.
+ * PickerModel handles two main responsibilities:
+ * 1. Observing OrderHub.
+ * 2. Notifying PickerView to Updates user interface.
+ *
+ * 1. Observing OrderHub.
+ * PickerModel is an observer of  OrderHub, receiving orderMap from OrderHub.
+ * When a picker claims a task, PickerModel:
+ * - Retrieves the first unlocked order from the orderMap.
+ * - Locks the selected order to prevent other pickers from accessing it.
+ * - Notifies OrderHub to update the orderMap, and begin preparation of the order.
+ *
+ * Once the order is collected by the customer, PickerModel:
+ * - Unlocks the order.
+ * - Notifies OrderHub to update the orderMap.
+ * - Begins the next task if available.
+ *
+ * All changes in order state are centralized through OrderHub to ensure synchronization.
+ * No picker directly changes the display before OrderHub updates the shared orderMap;
+ * instead, each PickerModel waits for OrderHub's notification to refresh its state.
+ *
+ * Imagine the interaction flow:
+ * PickerModel: &quot;Hey OrderHub, I found an order that needs to be prepared. Please update the orderMap.&quot;
+ * OrderHub: &quot;Got it. I'll update the orderMap first.&quot;
+ * OrderHub (after updating): &quot;Attention all pickers: the orderMap has changed. Please refresh your views.&quot;
+ *
+ * This ensures that all PickerModels stay in sync by only updating their local state
+ * in response to centralized changes made by the OrderHub.
+ */
+
+<span class="fc" id="L42">public class PickerModel implements OrderObserver {</span>
+    private PickerView pickerView;
+<span class="fc" id="L44">    private OrderHub orderHub = OrderHub.getOrderHub();</span>
+
+    /**
+     * Sets the PickerView for this model.
+     * @param pickerView the PickerView instance
+     */
+    public void setPickerView(PickerView pickerView) {
+<span class="nc" id="L51">        this.pickerView = pickerView;</span>
+<span class="nc" id="L52">    }</span>
+
+    /**
+     * Gets the PickerView associated with this model.
+     * @return the PickerView instance
+     */
+    public PickerView getPickerView() {
+<span class="nc" id="L59">        return pickerView;</span>
+    }
+
+    //two elements that need to be passed to PickerView for updating.
+<span class="fc" id="L63">    private String displayTaOrderMap=&quot;&quot;;</span>
+<span class="fc" id="L64">    private String displayTaOrderDetail =&quot;&quot;;</span>
+
+    // TreeMap (orderID,state) holding order IDs and their corresponding states.
+    // This is now instance-level (not static) and is updated via OrderHub notifications.
+<span class="fc" id="L68">    private TreeMap&lt;Integer, OrderState&gt; orderMap = new TreeMap&lt;&gt;();</span>
+
+<span class="fc" id="L70">    private int theOrderId=0; //Order ID assigned to a picker;</span>
+                              // 0 means no order is currently assigned.
+    private OrderState theOrderState;
+
+    /**
+     * Attempts to find an unlocked order for this picker and mark it as progressing.
+     * The order will be locked to prevent other pickers from accessing it.
+     * Only the first unlocked order found will be processed.
+     * 
+     * Locking is now handled by OrderHub to ensure thread safety across all picker instances.
+     */
+    public void doProgressing() throws IOException {
+        // Use OrderHub to get the first unlocked order
+<span class="nc" id="L83">        Integer orderId = orderHub.getFirstUnlockedOrder(OrderState.Ordered);</span>
+        
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (orderId != null) {</span>
+            // Try to lock the order through OrderHub
+<span class="nc bnc" id="L87" title="All 2 branches missed.">            if (orderHub.lockOrder(orderId)) {</span>
+<span class="nc" id="L88">                theOrderId = orderId; // Save the assigned orderId to this picker and update its state</span>
+<span class="nc" id="L89">                theOrderState = OrderState.Progressing;</span>
+<span class="nc" id="L90">                notifyOrderHub();// Notify the OrderHub about the state change</span>
+<span class="nc" id="L91">                updatePickerView(); // Refresh picker view</span>
+            }
+            // If locking failed (shouldn't happen since we checked, but handle gracefully)
+        }
+<span class="nc" id="L95">    }</span>
+
+    public void doCollected() throws IOException {
+<span class="nc bnc" id="L98" title="All 4 branches missed.">        if(theOrderId != 0 &amp;&amp; orderHub.isOrderLocked(theOrderId)){</span>
+<span class="nc" id="L99">            theOrderState = OrderState.Collected;</span>
+<span class="nc" id="L100">            notifyOrderHub(); // Notify the OrderHub about the state change</span>
+<span class="nc" id="L101">            displayTaOrderDetail = &quot;&quot;;</span>
+<span class="nc" id="L102">            updatePickerView(); // update picker view</span>
+<span class="nc" id="L103">            int orderIdToUnlock = theOrderId; // Save before resetting</span>
+<span class="nc" id="L104">            theOrderId = 0;  //reset to no order is with the picker</span>
+<span class="nc" id="L105">            orderHub.unlockOrder(orderIdToUnlock); // Unlock the order through OrderHub</span>
+        }
+<span class="nc" id="L107">    }</span>
+
+    // Registers this PickerModel instance with the OrderHub
+    //so it can receive updates about orderMap changes.
+    public void registerWithOrderHub(){
+<span class="fc" id="L112">        OrderHub orderHub = OrderHub.getOrderHub();</span>
+<span class="fc" id="L113">        orderHub.registerPickerModel(this);</span>
+<span class="fc" id="L114">    }</span>
+
+    //Notifies the OrderHub of a change in the order state.
+    //If the order is moving to the 'Progressing' state, asks OrderHub to read the order detail
+    // from the file system for displaying in the pickerView.
+    private void notifyOrderHub() throws IOException {
+<span class="nc" id="L120">        orderHub.changeOrderStateMoveFile(theOrderId, theOrderState);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (theOrderState == OrderState.Progressing) {</span>
+            // Read order file, ie. order details
+<span class="nc" id="L123">            displayTaOrderDetail = orderHub.getOrderDetailForPicker(theOrderId);</span>
+        }
+<span class="nc" id="L125">    }</span>
+
+    // Sets the order map with new data and refreshes the display.
+    // This method is called by OrderHub to set orderMap for picker.
+    // @deprecated Use updateOrderMap() instead (implements OrderObserver interface)
+    @Deprecated
+    public void setOrderMap(TreeMap&lt;Integer,OrderState&gt; om) {
+<span class="nc" id="L132">        updateOrderMap(om);</span>
+<span class="nc" id="L133">    }</span>
+
+    /**
+     * Updates the order map with new data and refreshes the display.
+     * This method is called by OrderHub when order states are updated.
+     * Implements the OrderObserver interface.
+     * 
+     * @param orderMap A TreeMap containing order IDs as keys and their current states as values.
+     *                 For pickers, this map is filtered to only include Ordered and Progressing orders.
+     */
+    @Override
+    public void updateOrderMap(TreeMap&lt;Integer, OrderState&gt; orderMap) {
+<span class="fc" id="L145">        this.orderMap.clear();</span>
+<span class="fc" id="L146">        this.orderMap.putAll(orderMap);</span>
+<span class="fc" id="L147">        displayTaOrderMap = buildOrderMapString();</span>
+<span class="nc" id="L148">        updatePickerView();</span>
+<span class="nc" id="L149">    }</span>
+
+    /**
+     * Returns the order states that this picker is interested in.
+     * Pickers only need to see orders in &quot;Ordered&quot; or &quot;Progressing&quot; states.
+     * 
+     * @return An array containing OrderState.Ordered and OrderState.Progressing
+     */
+    @Override
+    public OrderState[] getInterestedStates() {
+<span class="fc" id="L159">        return new OrderState[]{OrderState.Ordered, OrderState.Progressing};</span>
+    }
+
+    //Builds a formatted string representing the current order map.
+    //Each line contains the order ID followed by its state, aligned with spacing.
+    private String buildOrderMapString() {
+<span class="fc" id="L165">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">        for(Map.Entry&lt;Integer, OrderState&gt; entry : orderMap.entrySet()) {</span>
+<span class="fc" id="L167">            int orderId = entry.getKey();</span>
+<span class="fc" id="L168">            OrderState orderState = entry.getValue();</span>
+<span class="fc" id="L169">            sb.append(orderId).append(&quot; &quot;.repeat(8)).append(orderState).append(&quot;\n&quot;);</span>
+<span class="fc" id="L170">        }</span>
+<span class="fc" id="L171">        return sb.toString();</span>
+    }
+
+    private void updatePickerView()
+    {
+<span class="nc" id="L176">        pickerView.update(displayTaOrderMap,displayTaOrderDetail);</span>
+<span class="nc" id="L177">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
