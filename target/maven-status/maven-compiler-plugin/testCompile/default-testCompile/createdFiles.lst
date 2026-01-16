@@ -1,0 +1,14 @@
+ci553\happyshop\client\customer\CustomerModelSearchTest.class
+ci553\happyshop\client\customer\CustomerModelInsufficientStockTest$MockCustomerView.class
+ci553\happyshop\service\ValidationServiceTest.class
+ci553\happyshop\service\TrolleyServiceTest.class
+ci553\happyshop\client\warehouse\WarehouseModelTest$MockWarehouseView.class
+ci553\happyshop\orderManagement\OrderCancellationTest.class
+ci553\happyshop\client\customer\CustomerModelSearchTest$MockCustomerView.class
+ci553\happyshop\client\warehouse\WarehouseModelTest.class
+ci553\happyshop\client\customer\CustomerModelInsufficientStockTest.class
+ci553\happyshop\orderManagement\OrderHubTest.class
+ci553\happyshop\testutil\TestHelper.class
+ci553\happyshop\testutil\MockDatabaseRW.class
+ci553\happyshop\client\picker\PickerModelTest.class
+ci553\happyshop\service\StockAlertServiceTest.class

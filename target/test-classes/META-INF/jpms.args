@@ -1,0 +1,4 @@
+--patch-module
+ci553.happyshop=_
+--add-reads
+ci553.happyshop=ALL-UNNAMED
