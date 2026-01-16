@@ -343,4 +343,61 @@ public class DerbyRW implements DatabaseRW {
         }
     }
 
+    /**
+     * Restores stock quantities for products when an order is cancelled.
+     * This method increases the stock quantity for each product by the ordered quantity.
+     * 
+     * @param proList the list of products with ordered quantities to restore
+     * @throws SQLException if a database access error occurs
+     */
+    public void restoreStock(ArrayList<Product> proList) throws SQLException {
+        lock.lock();
+        String updateSql = "UPDATE ProductTable SET inStock = inStock + ? WHERE productId = ?";
+
+        try (Connection conn = DriverManager.getConnection(dbURL)) {
+            conn.setAutoCommit(false); // Turn off auto-commit for transaction
+
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                for (Product product : proList) {
+                    updateStmt.setInt(1, product.getOrderedQuantity());
+                    updateStmt.setString(2, product.getProductId());
+                    updateStmt.addBatch();
+                }
+
+                // Execute all updates in a batch
+                updateStmt.executeBatch();
+                conn.commit(); // Commit all updates
+                System.out.println("Stock restored successfully for cancelled order.");
+            } catch (SQLException e) {
+                conn.rollback(); // Rollback if anything failed
+                System.err.println("Error restoring stock: " + e.getMessage());
+                throw e;
+            }
+        } finally {
+            lock.unlock(); // Always release the lock after the operation
+        }
+    }
+
+    /**
+     * Retrieves all products from the database.
+     * 
+     * @return a list of all products in the database
+     * @throws SQLException if a database access error occurs
+     */
+    public ArrayList<Product> getAllProducts() throws SQLException {
+        ArrayList<Product> productList = new ArrayList<>();
+        String query = "SELECT * FROM ProductTable ORDER BY productID";
+
+        try (Connection conn = DriverManager.getConnection(dbURL);
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                productList.add(makeProObjFromDbRecord(rs));
+            }
+        }
+
+        return productList;
+    }
+
 }

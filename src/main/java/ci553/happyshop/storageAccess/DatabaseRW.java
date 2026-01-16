@@ -86,6 +86,24 @@ public interface DatabaseRW {
      * @return true if the ID is available, false if it already exists in the database
      */
     boolean isProIdAvailable(String productId) throws SQLException;
+
+    /**
+     * Restores stock quantities for products when an order is cancelled.
+     * This method increases the stock quantity for each product in the list by the ordered quantity.
+     * 
+     * @param proList the list of products with ordered quantities to restore
+     * @throws SQLException if a database access error occurs
+     */
+    void restoreStock(ArrayList<Product> proList) throws SQLException;
+
+    /**
+     * Retrieves all products from the database.
+     * Useful for scanning all products for low stock alerts.
+     * 
+     * @return a list of all products in the database
+     * @throws SQLException if a database access error occurs
+     */
+    ArrayList<Product> getAllProducts() throws SQLException;
 }
 
 

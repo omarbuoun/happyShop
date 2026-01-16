@@ -33,8 +33,8 @@ public class CustomerClient extends Application {
 
         cusView.cusController = cusController;
         cusController.cusModel = cusModel;
-        cusModel.cusView = cusView;
-        cusModel.databaseRW = databaseRW;
+        cusModel.setCusView(cusView);
+        cusModel.setDatabaseRW(databaseRW);
         cusView.start(window);
 
         //RemoveProductNotifier removeProductNotifier = new RemoveProductNotifier();

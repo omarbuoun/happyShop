@@ -9,6 +9,7 @@ import ci553.happyshop.client.picker.PickerModel;
 import ci553.happyshop.client.picker.PickerView;
 
 import ci553.happyshop.client.warehouse.*;
+import ci553.happyshop.client.orderHistory.OrderHistoryView;
 import ci553.happyshop.orderManagement.OrderHub;
 import ci553.happyshop.storageAccess.DatabaseRW;
 import ci553.happyshop.storageAccess.DatabaseRWFactory;
@@ -57,6 +58,8 @@ public class Main extends Application {
         startWarehouseClient();
         startWarehouseClient();
 
+        startOrderHistoryView();
+
         startEmergencyExit();
     }
 
@@ -77,8 +80,8 @@ public class Main extends Application {
 
         cusView.cusController = cusController;
         cusController.cusModel = cusModel;
-        cusModel.cusView = cusView;
-        cusModel.databaseRW = databaseRW;
+        cusModel.setCusView(cusView);
+        cusModel.setDatabaseRW(databaseRW);
         cusView.start(new Stage());
 
         //RemoveProductNotifier removeProductNotifier = new RemoveProductNotifier();
@@ -100,7 +103,7 @@ public class Main extends Application {
         PickerController pickerController = new PickerController();
         pickerView.pickerController = pickerController;
         pickerController.pickerModel = pickerModel;
-        pickerModel.pickerView = pickerView;
+        pickerModel.setPickerView(pickerView);
         pickerModel.registerWithOrderHub();
         pickerView.start(new Stage());
     }
@@ -137,8 +140,8 @@ public class Main extends Application {
         // Link controller, model, and view and start view
         view.controller = controller;
         controller.model = model;
-        model.view = view;
-        model.databaseRW = databaseRW;
+        model.setView(view);
+        model.setDatabaseRW(databaseRW);
         view.start(new Stage());
 
         //create dependent views that need window info
@@ -146,10 +149,22 @@ public class Main extends Application {
         AlertSimulator alertSimulator = new AlertSimulator();
 
         // Link after start
-        model.historyWindow = historyWindow;
-        model.alertSimulator = alertSimulator;
+        model.setHistoryWindow(historyWindow);
+        model.setAlertSimulator(alertSimulator);
         historyWindow.warehouseView = view;
         alertSimulator.warehouseView = view;
+    }
+
+    /** The Order History View - displays historical orders and analytics
+     * 
+     * Creates and starts the Order History View window, which shows:
+     * - All past orders (collected and cancelled)
+     * - Order statistics (total orders, revenue, cancellation rate, etc.)
+     * - Export functionality (CSV and JSON)
+     */
+    private void startOrderHistoryView(){
+        OrderHistoryView view = new OrderHistoryView();
+        view.start(new Stage());
     }
 
     //starts the EmergencyExit GUI, - used to close the entire application immediatelly

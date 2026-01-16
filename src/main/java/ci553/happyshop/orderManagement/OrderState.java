@@ -3,10 +3,11 @@ package ci553.happyshop.orderManagement;
 /**
  * Represents the state of an order in the system.
  *
- * This enum defines the three possible states an order can be in:
+ * This enum defines the possible states an order can be in:
  * - Ordered: The order was placed by the customer.
  * - Progressing: A picker is currently preparing the order for customer.
  * - Collected: The order has been collected by customer from picker
+ * - Cancelled: The order was cancelled by the customer (only orders in "Ordered" state can be cancelled)
  *
  * Using an enum provides a type-safe and readable way to represent a fixed set of constant values,
  * which improves code clarity, reduces errors from invalid strings or integers,
@@ -16,5 +17,6 @@ package ci553.happyshop.orderManagement;
 public enum OrderState {
     Ordered,
     Progressing,
-    Collected
+    Collected,
+    Cancelled
 }

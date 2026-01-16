@@ -36,6 +36,7 @@ public class Order {
     private String orderedDateTime="";
     private String progressingDateTime="";
     private String collectedDateTime="";
+    private String cancelledDateTime="";
     private ArrayList<Product> productList = new ArrayList<>(); //Trolley
 
     // Constructor used by OrderHub to create a new order for a customer.
@@ -68,12 +69,14 @@ public class Order {
                         "OrderedDateTime: %s \n" +
                         "ProgressingDateTime: %s \n" +
                         "CollectedDateTime: %s\n" +
+                        "CancelledDateTime: %s\n" +
                         "Items:\n%s",
                 orderId,
                 state,
                 orderedDateTime,
                 progressingDateTime,
                 collectedDateTime,
+                cancelledDateTime,
                 ProductListFormatter.buildString(productList)
                 );
     }

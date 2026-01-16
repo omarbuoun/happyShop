@@ -174,7 +174,12 @@ public class WarehouseView  {
         //Button btnSearch = new Button("\uD83D\uDD0D"); // Unicode for 🔍
         btnSearch.setOnAction(this::buttonClick);
         btnSearch.setStyle(UIStyle.buttonStyle);
-        HBox hbSearch = new HBox(10, tfSearchKeyword, btnSearch);
+        
+        Button btnCheckLowStock = new Button("⚠️ Check Low Stock");
+        btnCheckLowStock.setOnAction(this::buttonClick);
+        btnCheckLowStock.setStyle(UIStyle.buttonStyle);
+        
+        HBox hbSearch = new HBox(10, tfSearchKeyword, btnSearch, btnCheckLowStock);
         hbSearch.setAlignment(Pos.CENTER);
 
         laSearchSummary = new Label("Search Summary");
@@ -415,8 +420,12 @@ public class WarehouseView  {
         ivProNewPro = new ImageView("WarehouseImageHolder.jpg");
         ivProNewPro.setFitWidth(100);
         ivProNewPro.setFitHeight(70);
-        ivProEdit.setPreserveRatio(true); //Image keeps its original shape and fits inside 100×70
-        ivProEdit.setSmooth(true);//make it smooth and nice-looking
+        ivProNewPro.setPreserveRatio(true); //Image keeps its original shape and fits inside 100×70
+        ivProNewPro.setSmooth(true);//make it smooth and nice-looking
+
+        // Add tooltip to indicate image selection is optional
+        Tooltip imageTooltip = new Tooltip("Click to select an image file (optional - default image will be used if not selected)");
+        Tooltip.install(ivProNewPro, imageTooltip);
 
         // Image Click Event (Open File Chooser)
         ivProNewPro.setOnMouseClicked(this::imageChooser);

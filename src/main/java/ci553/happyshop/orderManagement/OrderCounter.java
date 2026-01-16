@@ -4,6 +4,7 @@ import ci553.happyshop.utility.StorageLocation;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.channels.FileChannel;
@@ -34,9 +35,22 @@ public class OrderCounter {
 
     public static int generateOrderId() throws IOException {
         Path path = StorageLocation.orderCounterPath;
+        
+        // Ensure the directory exists
+        Path parentDir = path.getParent();
+        if (parentDir != null && !Files.exists(parentDir)) {
+            Files.createDirectories(parentDir);
+            System.out.println("Created directory: " + parentDir);
+        }
+        
+        // Create the file with initial value "0" if it doesn't exist
+        if (!Files.exists(path)) {
+            Files.writeString(path, "0", StandardOpenOption.CREATE_NEW);
+            System.out.println("Created orderCounter file: " + path);
+        }
 
         // Lock and increment the ID
-        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE);
+        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
              FileLock lock = channel.lock()) {
 
             //creates a ByteBuffer of the same size as the file — so you can read the whole thing.

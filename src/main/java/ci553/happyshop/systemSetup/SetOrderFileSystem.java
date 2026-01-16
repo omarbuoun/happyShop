@@ -19,7 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * 1. Deletes all existing files inside the orders folder (but retains the folder structure).
  * 2. Ensures that all required order-related folders exist:
  *    - The main orders folder (`orders/`)
- *    - Subfolders for each order state: `ordered/`, `progressing/`, and `collected/`
+ *    - Subfolders for each order state: `ordered/`, `progressing/`, `collected/`, and `cancelled/`
  * 3. Creates the orderCounter.txt file inside the 'orders/' folder if it does not already exist, initializing it to "0".
  *   - The `orderCounter.txt`
  *
@@ -35,7 +35,8 @@ public class SetOrderFileSystem {
             StorageLocation.ordersPath,
             StorageLocation.orderedPath,
             StorageLocation.progressingPath,
-            StorageLocation.collectedPath
+            StorageLocation.collectedPath,
+            StorageLocation.cancelledPath
     };
 
     public static void main(String[] args) throws IOException {

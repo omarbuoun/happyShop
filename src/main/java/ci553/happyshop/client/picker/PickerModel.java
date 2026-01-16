@@ -1,12 +1,12 @@
 package ci553.happyshop.client.picker;
 
 import ci553.happyshop.orderManagement.OrderHub;
+import ci553.happyshop.orderManagement.OrderObserver;
 import ci553.happyshop.orderManagement.OrderState;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 /**
  * PickerModel represents the logic order picker.
@@ -39,17 +39,33 @@ import java.util.TreeSet;
  * in response to centralized changes made by the OrderHub.
  */
 
-public class PickerModel {
-    public PickerView pickerView;
+public class PickerModel implements OrderObserver {
+    private PickerView pickerView;
     private OrderHub orderHub = OrderHub.getOrderHub();
+
+    /**
+     * Sets the PickerView for this model.
+     * @param pickerView the PickerView instance
+     */
+    public void setPickerView(PickerView pickerView) {
+        this.pickerView = pickerView;
+    }
+
+    /**
+     * Gets the PickerView associated with this model.
+     * @return the PickerView instance
+     */
+    public PickerView getPickerView() {
+        return pickerView;
+    }
 
     //two elements that need to be passed to PickerView for updating.
     private String displayTaOrderMap="";
     private String displayTaOrderDetail ="";
 
     // TreeMap (orderID,state) holding order IDs and their corresponding states.
-    private static TreeMap<Integer, OrderState> orderMap = new TreeMap<>();
-    private static TreeSet<Integer> lockedOrderIds = new TreeSet<>(); // Track locked orders by orderId
+    // This is now instance-level (not static) and is updated via OrderHub notifications.
+    private TreeMap<Integer, OrderState> orderMap = new TreeMap<>();
 
     private int theOrderId=0; //Order ID assigned to a picker;
                               // 0 means no order is currently assigned.
@@ -59,49 +75,34 @@ public class PickerModel {
      * Attempts to find an unlocked order for this picker and mark it as progressing.
      * The order will be locked to prevent other pickers from accessing it.
      * Only the first unlocked order found will be processed.
+     * 
+     * Locking is now handled by OrderHub to ensure thread safety across all picker instances.
      */
     public void doProgressing() throws IOException {
-        for (Map.Entry<Integer, OrderState> entry : orderMap.entrySet()) {
-            int orderId = entry.getKey();
-            if (!isOrderLocked(orderId)) { // Find the first unlocked order
-                lockOrder(orderId);// Lock the order to prevent other pickers from taking it
+        // Use OrderHub to get the first unlocked order
+        Integer orderId = orderHub.getFirstUnlockedOrder(OrderState.Ordered);
+        
+        if (orderId != null) {
+            // Try to lock the order through OrderHub
+            if (orderHub.lockOrder(orderId)) {
                 theOrderId = orderId; // Save the assigned orderId to this picker and update its state
                 theOrderState = OrderState.Progressing;
                 notifyOrderHub();// Notify the OrderHub about the state change
                 updatePickerView(); // Refresh picker view
-                return; // Exit after handling one order
             }
+            // If locking failed (shouldn't happen since we checked, but handle gracefully)
         }
-    }
-
-    // Lock an order
-    private boolean lockOrder(int orderId) {
-        if (lockedOrderIds.contains(orderId)) {
-            return false; // Order is already locked
-        } else {
-            lockedOrderIds.add(orderId);
-            return true; // Successfully locked the order
-        }
-    }
-
-    // Unlock an order
-    private void unlockOrder(int orderId) {
-        lockedOrderIds.remove(orderId);
-    }
-
-    // Check if an order is locked
-    private boolean isOrderLocked(int orderId) {
-        return lockedOrderIds.contains(orderId);
     }
 
     public void doCollected() throws IOException {
-        if(theOrderId!=0 && isOrderLocked(theOrderId)){
+        if(theOrderId != 0 && orderHub.isOrderLocked(theOrderId)){
             theOrderState = OrderState.Collected;
             notifyOrderHub(); // Notify the OrderHub about the state change
             displayTaOrderDetail = "";
             updatePickerView(); // update picker view
-            theOrderId=0;  //reset to no order is with the picker
-            unlockOrder(theOrderId);//remove the order from locked orderId set
+            int orderIdToUnlock = theOrderId; // Save before resetting
+            theOrderId = 0;  //reset to no order is with the picker
+            orderHub.unlockOrder(orderIdToUnlock); // Unlock the order through OrderHub
         }
     }
 
@@ -125,11 +126,37 @@ public class PickerModel {
 
     // Sets the order map with new data and refreshes the display.
     // This method is called by OrderHub to set orderMap for picker.
+    // @deprecated Use updateOrderMap() instead (implements OrderObserver interface)
+    @Deprecated
     public void setOrderMap(TreeMap<Integer,OrderState> om) {
-        orderMap.clear();
-        orderMap.putAll(om);
-        displayTaOrderMap= buildOrderMapString();
+        updateOrderMap(om);
+    }
+
+    /**
+     * Updates the order map with new data and refreshes the display.
+     * This method is called by OrderHub when order states are updated.
+     * Implements the OrderObserver interface.
+     * 
+     * @param orderMap A TreeMap containing order IDs as keys and their current states as values.
+     *                 For pickers, this map is filtered to only include Ordered and Progressing orders.
+     */
+    @Override
+    public void updateOrderMap(TreeMap<Integer, OrderState> orderMap) {
+        this.orderMap.clear();
+        this.orderMap.putAll(orderMap);
+        displayTaOrderMap = buildOrderMapString();
         updatePickerView();
+    }
+
+    /**
+     * Returns the order states that this picker is interested in.
+     * Pickers only need to see orders in "Ordered" or "Progressing" states.
+     * 
+     * @return An array containing OrderState.Ordered and OrderState.Progressing
+     */
+    @Override
+    public OrderState[] getInterestedStates() {
+        return new OrderState[]{OrderState.Ordered, OrderState.Progressing};
     }
 
     //Builds a formatted string representing the current order map.

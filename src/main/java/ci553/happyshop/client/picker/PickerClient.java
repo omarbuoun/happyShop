@@ -29,7 +29,7 @@ public class PickerClient extends Application {
 
         pickerView.pickerController = pickerController;
         pickerController.pickerModel = pickerModel;
-        pickerModel.pickerView = pickerView;
+        pickerModel.setPickerView(pickerView);
 
         pickerModel.registerWithOrderHub();
         pickerView.start(window);

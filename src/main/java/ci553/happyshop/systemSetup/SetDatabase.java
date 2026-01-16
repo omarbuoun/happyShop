@@ -89,7 +89,7 @@ public class SetDatabase {
                         "CHECK (inStock >= 0)" +
                         ")",
 
-                // Insert data into ProductTable
+                // Insert data into ProductTable - Default products that will always be available
                 "INSERT INTO ProductTable VALUES('0001', '40 inch TV', 269.00,'0001.jpg',100)",
                 "INSERT INTO ProductTable VALUES('0002', 'DAB Radio', 29.99, '0002.jpg',100)",
                 "INSERT INTO ProductTable VALUES('0003', 'Toaster', 19.99, '0003.jpg',100)",
@@ -101,7 +101,15 @@ public class SetDatabase {
                 "INSERT INTO ProductTable VALUES('0009', 'USB3 drive', 8.99, '0009.jpg',100)",
                 "INSERT INTO ProductTable VALUES('0010', 'USB4 drive', 9.99, '0010.jpg',100)",
                 "INSERT INTO ProductTable VALUES('0011', 'USB5 drive', 10.99, '0011.jpg',100)",
-                "INSERT INTO ProductTable VALUES('0012', 'USB6 drive', 10.99, '0011.jpg',100)",
+                "INSERT INTO ProductTable VALUES('0012', 'USB6 drive', 10.99, '0012.jpg',100)",
+                "INSERT INTO ProductTable VALUES('0013', 'Laptop', 599.99, '0013.jpg',50)",
+                "INSERT INTO ProductTable VALUES('0014', 'Smartphone', 399.99, '0014.jpg',75)",
+                "INSERT INTO ProductTable VALUES('0015', 'Headphones', 49.99, '0015.jpg',120)",
+                "INSERT INTO ProductTable VALUES('0016', 'Tablet', 299.99, '0016.jpg',60)",
+                "INSERT INTO ProductTable VALUES('0017', 'Keyboard', 29.99, '0017.jpg',150)",
+                "INSERT INTO ProductTable VALUES('0018', 'Mouse', 19.99, '0018.jpg',200)",
+                "INSERT INTO ProductTable VALUES('0019', 'Monitor', 199.99, '0019.jpg',40)",
+                "INSERT INTO ProductTable VALUES('0020', 'Speaker', 79.99, '0020.jpg',80)",
         };
 
         try (Connection connection = DriverManager.getConnection(dbURL)) {

@@ -11,6 +11,9 @@ public class WarehouseController {
             case "🔍":
                 model.doSearch();
                 break;
+            case "⚠️ Check Low Stock":
+                model.doCheckLowStock();
+                break;
             case "Edit":
                 model.doEdit();
                 break;

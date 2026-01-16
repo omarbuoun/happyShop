@@ -4,6 +4,8 @@ import ci553.happyshop.catalogue.Order;
 import ci553.happyshop.catalogue.Product;
 import ci553.happyshop.client.orderTracker.OrderTracker;
 import ci553.happyshop.client.picker.PickerModel;
+import ci553.happyshop.storageAccess.DatabaseRW;
+import ci553.happyshop.storageAccess.DatabaseRWFactory;
 import ci553.happyshop.storageAccess.OrderFileManager;
 import ci553.happyshop.utility.StorageLocation;
 
@@ -46,20 +48,42 @@ public class OrderHub  {
     private final Path orderedPath = StorageLocation.orderedPath;
     private final Path progressingPath = StorageLocation.progressingPath;
     private final Path collectedPath = StorageLocation.collectedPath;
+    private final Path cancelledPath = StorageLocation.cancelledPath;
 
     private TreeMap<Integer,OrderState> orderMap = new TreeMap<>();
     private TreeMap<Integer,OrderState> OrderedOrderMap = new TreeMap<>();
     private TreeMap<Integer,OrderState> progressingOrderMap = new TreeMap<>();
+    
+    /**
+     * Tracks which orders are currently locked by pickers.
+     * This prevents multiple pickers from claiming the same order simultaneously.
+     * The locking mechanism is centralized in OrderHub to ensure thread safety.
+     */
+    private final java.util.Set<Integer> lockedOrderIds = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /**
-     * Two Lists to hold all registered OrderTracker and PickerModel observers.
+     * Unified list to hold all registered OrderObserver instances.
      * These observers are notified whenever the orderMap is updated,
      * but each observer is only notified of the parts of the orderMap that are relevant to them.
      * - OrderTrackers will be notified of the full orderMap, including all orders (ordered, progressing, collected),
      *   but collected orders are shown for a limited time (10 seconds).
      * - PickerModels will be notified only of orders in the "ordered" or "progressing" states, filtering out collected orders.
+     * 
+     * @deprecated The separate lists (orderTrackerList, pickerModelList) are maintained for backward compatibility
+     * but new code should use the unified observerList.
      */
+    private ArrayList<OrderObserver> observerList = new ArrayList<>();
+    
+    /**
+     * @deprecated Use observerList instead. Maintained for backward compatibility.
+     */
+    @Deprecated
     private ArrayList<OrderTracker> orderTrackerList = new ArrayList<>();
+    
+    /**
+     * @deprecated Use observerList instead. Maintained for backward compatibility.
+     */
+    @Deprecated
     private ArrayList<PickerModel> pickerModelList = new ArrayList<>();
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -86,17 +110,137 @@ public class OrderHub  {
         OrderFileManager.createOrderFile(path, orderId, orderDetail);
 
         orderMap.put(orderId, theOrder.getState()); //add the order to orderMap,state is Ordered initially
-        notifyOrderTrackers(); //notify OrderTrackers
-        notifyPickerModels();//notify pickers
+        notifyObservers(); //notify all observers using the unified interface
+        // Also call deprecated methods for backward compatibility
+        notifyOrderTrackers();
+        notifyPickerModels();
         
         return theOrder;
     }
 
+    /**
+     * Registers an OrderObserver to receive updates about order changes.
+     * This is the preferred method for registering observers.
+     * 
+     * @param observer the observer to register
+     */
+    public void registerObserver(OrderObserver observer) {
+        if (observer != null && !observerList.contains(observer)) {
+            observerList.add(observer);
+        }
+    }
+
+    /**
+     * Unregisters an OrderObserver so it no longer receives updates.
+     * 
+     * @param observer the observer to unregister
+     */
+    public void unregisterObserver(OrderObserver observer) {
+        observerList.remove(observer);
+    }
+
+    /**
+     * Notifies all registered observers of changes to the order map.
+     * Each observer receives a filtered view of the order map based on
+     * the states they are interested in (via getInterestedStates()).
+     */
+    public void notifyObservers() {
+        for (OrderObserver observer : observerList) {
+            TreeMap<Integer, OrderState> filteredMap = getFilteredOrderMap(observer);
+            observer.updateOrderMap(filteredMap);
+        }
+    }
+
+    /**
+     * Gets a filtered order map based on the observer's interested states.
+     * If the observer doesn't specify interested states, returns the full map.
+     * 
+     * @param observer the observer requesting the filtered map
+     * @return a filtered TreeMap containing only the states the observer is interested in
+     */
+    private TreeMap<Integer, OrderState> getFilteredOrderMap(OrderObserver observer) {
+        OrderState[] interestedStates = observer.getInterestedStates();
+        
+        // If no specific states requested, return full map
+        if (interestedStates == null || interestedStates.length == 0) {
+            return new TreeMap<>(orderMap);
+        }
+        
+        // Filter map to only include interested states
+        TreeMap<Integer, OrderState> filteredMap = new TreeMap<>();
+        for (Map.Entry<Integer, OrderState> entry : orderMap.entrySet()) {
+            for (OrderState state : interestedStates) {
+                if (entry.getValue() == state) {
+                    filteredMap.put(entry.getKey(), entry.getValue());
+                    break;
+                }
+            }
+        }
+        return filteredMap;
+    }
+
+    /**
+     * Attempts to lock an order for a picker.
+     * This prevents multiple pickers from claiming the same order simultaneously.
+     * 
+     * @param orderId the order ID to lock
+     * @return true if the order was successfully locked, false if it was already locked
+     */
+    public synchronized boolean lockOrder(int orderId) {
+        if (lockedOrderIds.contains(orderId)) {
+            return false; // Order is already locked
+        }
+        lockedOrderIds.add(orderId);
+        return true; // Successfully locked the order
+    }
+
+    /**
+     * Unlocks an order, making it available for other pickers.
+     * 
+     * @param orderId the order ID to unlock
+     */
+    public synchronized void unlockOrder(int orderId) {
+        lockedOrderIds.remove(orderId);
+    }
+
+    /**
+     * Checks if an order is currently locked.
+     * 
+     * @param orderId the order ID to check
+     * @return true if the order is locked, false otherwise
+     */
+    public synchronized boolean isOrderLocked(int orderId) {
+        return lockedOrderIds.contains(orderId);
+    }
+
+    /**
+     * Gets the first unlocked order ID from the order map that matches the specified state.
+     * This is used by pickers to find available orders to process.
+     * 
+     * @param state the order state to look for (typically OrderState.Ordered)
+     * @return the first unlocked order ID, or null if no unlocked orders are available
+     */
+    public synchronized Integer getFirstUnlockedOrder(OrderState state) {
+        for (Map.Entry<Integer, OrderState> entry : orderMap.entrySet()) {
+            int orderId = entry.getKey();
+            if (entry.getValue() == state && !isOrderLocked(orderId)) {
+                return orderId;
+            }
+        }
+        return null;
+    }
+
     //Registers an OrderTracker to receive updates about changes.
+    // @deprecated Use registerObserver() instead
+    @Deprecated
     public void registerOrderTracker(OrderTracker orderTracker){
         orderTrackerList.add(orderTracker);
+        registerObserver(orderTracker); // Also register in unified list
     }
-     //Notifies all registered observer_OrderTrackers to update and display the latest orderMap.
+    
+    //Notifies all registered observer_OrderTrackers to update and display the latest orderMap.
+    // @deprecated Use notifyObservers() instead
+    @Deprecated
     public void notifyOrderTrackers(){
         for(OrderTracker orderTracker : orderTrackerList){
             orderTracker.setOrderMap(orderMap);
@@ -104,11 +248,16 @@ public class OrderHub  {
     }
 
     //Registers a PickerModel to receive updates about changes.
+    // @deprecated Use registerObserver() instead
+    @Deprecated
     public void registerPickerModel(PickerModel pickerModel){
         pickerModelList.add(pickerModel);
+        registerObserver(pickerModel); // Also register in unified list
     }
 
     //notify all pickers to show orderMap (only ordered and progressing states orders)
+    // @deprecated Use notifyObservers() instead
+    @Deprecated
     public void notifyPickerModels(){
         TreeMap<Integer,OrderState> orderMapForPicker = new TreeMap<>();
         progressingOrderMap = filterOrdersByState(OrderState.Progressing);
@@ -137,8 +286,10 @@ public class OrderHub  {
     public void changeOrderStateMoveFile(int orderId, OrderState newState) throws IOException {
         if(orderMap.containsKey(orderId) && !orderMap.get(orderId).equals(newState))
         {
-            //change orderState in OrderMap, notify OrderTrackers and pickers
+            //change orderState in OrderMap, notify all observers
             orderMap.put(orderId, newState);
+            notifyObservers(); //notify all observers using the unified interface
+            // Also call deprecated methods for backward compatibility
             notifyOrderTrackers();
             notifyPickerModels();
 
@@ -149,7 +300,12 @@ public class OrderHub  {
                     break;
                 case OrderState.Collected:
                     OrderFileManager.updateAndMoveOrderFile(orderId, newState,progressingPath,collectedPath);
+                    unlockOrder(orderId); // Unlock the order when it's collected
                     removeCollectedOrder(orderId); //Scheduled removal
+                    break;
+                case OrderState.Cancelled:
+                    OrderFileManager.updateAndMoveOrderFile(orderId, newState,orderedPath,cancelledPath);
+                    unlockOrder(orderId); // Unlock the order if it was cancelled
                     break;
             }
         }
@@ -169,7 +325,8 @@ public class OrderHub  {
             scheduler.schedule(() -> {
                 orderMap.remove(orderId); //remove collected order
                 System.out.println("Order " + orderId + " removed from tracker and OrdersMap.");
-                notifyOrderTrackers();
+                notifyObservers(); //notify all observers using the unified interface
+                notifyOrderTrackers(); // Also call deprecated method for backward compatibility
             }, 10, TimeUnit.SECONDS );
         }
     }
@@ -182,6 +339,111 @@ public class OrderHub  {
         }else{
             return "the fuction is only for picker";
         }
+    }
+
+    /**
+     * Cancels an order that is in "Ordered" state.
+     * Only orders in "Ordered" state can be cancelled (not progressing or collected orders).
+     * 
+     * This method:
+     * 1. Validates that the order exists and is in "Ordered" state
+     * 2. Reads the order file to extract product information
+     * 3. Restores stock for all products in the order
+     * 4. Changes order state to "Cancelled"
+     * 5. Moves the order file to the cancelled folder
+     * 6. Notifies all observers (OrderTrackers and PickerModels)
+     * 
+     * @param orderId The ID of the order to cancel
+     * @return true if cancellation was successful, false if order cannot be cancelled
+     * @throws IOException if there's an error reading/writing order files
+     * @throws SQLException if there's an error restoring stock in the database
+     */
+    public boolean cancelOrder(int orderId) throws IOException, SQLException {
+        // Check if order exists and is in Ordered state (only Ordered orders can be cancelled)
+        if(!orderMap.containsKey(orderId)) {
+            System.out.println("Order " + orderId + " not found.");
+            return false;
+        }
+        
+        OrderState currentState = orderMap.get(orderId);
+        if(!currentState.equals(OrderState.Ordered)) {
+            System.out.println("Order " + orderId + " cannot be cancelled. Only orders in 'Ordered' state can be cancelled. Current state: " + currentState);
+            return false;
+        }
+
+        // Read order file to extract product list
+        String orderContent = OrderFileManager.readOrderFile(orderedPath, orderId);
+        ArrayList<Product> productsToRestore = parseProductsFromOrderFile(orderContent);
+
+        // Restore stock for all products in the order
+        if(!productsToRestore.isEmpty()) {
+            DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();
+            databaseRW.restoreStock(productsToRestore);
+            System.out.println("Stock restored for cancelled order " + orderId);
+        }
+
+        // Change order state to Cancelled and move file
+        changeOrderStateMoveFile(orderId, OrderState.Cancelled);
+        
+        System.out.println("Order " + orderId + " has been cancelled successfully.");
+        return true;
+    }
+
+    /**
+     * Parses product information from an order file content.
+     * Extracts product IDs, quantities, and other details from the Items section.
+     * 
+     * @param orderContent The full content of the order file
+     * @return A list of Product objects with ordered quantities set
+     */
+    private ArrayList<Product> parseProductsFromOrderFile(String orderContent) throws SQLException {
+        ArrayList<Product> products = new ArrayList<>();
+        DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();
+        
+        String[] lines = orderContent.split("\n");
+        boolean inItemsSection = false;
+        
+        for(String line : lines) {
+            line = line.trim();
+            
+            // Start parsing when we reach the Items section
+            if(line.equals("Items:")) {
+                inItemsSection = true;
+                continue;
+            }
+            
+            // Stop parsing when we reach the Total line or separator
+            if(inItemsSection && (line.startsWith("-") || line.startsWith("Total"))) {
+                break;
+            }
+            
+            // Parse product lines: " 0001 Description ( 2) £ 100.00"
+            if(inItemsSection && !line.isEmpty()) {
+                try {
+                    // Extract product ID (first 7 characters, trimmed)
+                    String productId = line.substring(0, 7).trim();
+                    
+                    // Find quantity in parentheses: ( 2)
+                    int quantityStart = line.indexOf('(');
+                    int quantityEnd = line.indexOf(')');
+                    if(quantityStart != -1 && quantityEnd != -1) {
+                        String quantityStr = line.substring(quantityStart + 1, quantityEnd).trim();
+                        int quantity = Integer.parseInt(quantityStr);
+                        
+                        // Look up product from database to get full details
+                        Product product = databaseRW.searchByProductId(productId);
+                        if(product != null) {
+                            product.setOrderedQuantity(quantity);
+                            products.add(product);
+                        }
+                    }
+                } catch(Exception e) {
+                    System.err.println("Error parsing product line: " + line + " - " + e.getMessage());
+                }
+            }
+        }
+        
+        return products;
     }
 
     //Initializes the internal order map by loading the uncollected orders from the file system.
@@ -199,6 +461,8 @@ public class OrderHub  {
                 orderMap.put(orderId, OrderState.Progressing);
             }
         }
+        notifyObservers(); //notify all observers using the unified interface
+        // Also call deprecated methods for backward compatibility
         notifyOrderTrackers();
         notifyPickerModels();
         System.out.println("orderMap initilized. "+ orderMap.size() + " orders in total, including:");

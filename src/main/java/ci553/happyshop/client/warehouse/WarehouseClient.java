@@ -34,16 +34,16 @@ public class WarehouseClient extends Application {
 
         view.controller = controller;
         controller.model = model;
-        model.view = view;
-        model.databaseRW = databaseRW;
+        model.setView(view);
+        model.setDatabaseRW(databaseRW);
         view.start(window);
 
         HistoryWindow historyWindow = new HistoryWindow();
         AlertSimulator alertSimulator = new AlertSimulator();
 
         // Link after start warehouse interface
-        model.historyWindow = historyWindow;
-        model.alertSimulator = alertSimulator;
+        model.setHistoryWindow(historyWindow);
+        model.setAlertSimulator(alertSimulator);
         historyWindow.warehouseView = view;
         alertSimulator.warehouseView = view;
     }

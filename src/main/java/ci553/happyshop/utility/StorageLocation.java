@@ -60,6 +60,7 @@ public class StorageLocation {
     public static final Path orderedPath = ordersPath.resolve("ordered");//orders/ordered to store orders at Ordered state
     public static final Path progressingPath = ordersPath.resolve("progressing");// orders/progressing to store orders at Progressing state
     public static final Path collectedPath = ordersPath.resolve("collected");//orders/collected to store orders at Collected state
+    public static final Path cancelledPath = ordersPath.resolve("cancelled");//orders/cancelled to store orders at Cancelled state
 
     //OrderCounter File and its Path, ie orders/orderCounter.txt
     public static final String orderCounterFile = "orderCounter.txt";

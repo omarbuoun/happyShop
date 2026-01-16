@@ -89,7 +89,7 @@ public class CustomerView  {
         Label laName = new Label("Name:");
         laName.setStyle(UIStyle.labelStyle);
         tfName = new TextField();
-        tfName.setPromptText("implement it if you want");
+        tfName.setPromptText("eg. TV or Radio");
         tfName.setStyle(UIStyle.textFiledStyle);
         HBox hbName = new HBox(10, laName, tfName);
 
@@ -175,6 +175,7 @@ public class CustomerView  {
         try{
             Button btn = (Button)event.getSource();
             String action = btn.getText();
+            System.out.println("Button clicked: " + action); // Debug output
             if(action.equals("Add to Trolley")){
                 showTrolleyOrReceiptPage(vbTrolleyPage); //ensure trolleyPage shows if the last customer did not close their receiptPage
             }
@@ -184,21 +185,65 @@ public class CustomerView  {
             cusController.doAction(action);
         }
         catch(SQLException e){
+            System.err.println("SQLException in buttonClicked: " + e.getMessage());
             e.printStackTrace();
+            // Show error to user
+            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("Database Error");
+            alert.setContentText("An error occurred: " + e.getMessage());
+            alert.showAndWait();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.err.println("IOException in buttonClicked: " + e.getMessage());
+            e.printStackTrace();
+            // Show error to user
+            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("I/O Error");
+            alert.setContentText("An error occurred: " + e.getMessage());
+            alert.showAndWait();
+        } catch (Exception e) {
+            System.err.println("Unexpected exception in buttonClicked: " + e.getMessage());
+            e.printStackTrace();
+            // Show error to user
+            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("Unexpected Error");
+            alert.setContentText("An unexpected error occurred: " + e.getMessage());
+            alert.showAndWait();
         }
     }
 
 
     public void update(String imageName, String searchResult, String trolley, String receipt) {
-
-        ivProduct.setImage(new Image(imageName));
-        lbProductInfo.setText(searchResult);
-        taTrolley.setText(trolley);
-        if (!receipt.equals("")) {
-            showTrolleyOrReceiptPage(vbReceiptPage);
-            taReceipt.setText(receipt);
+        System.out.println("CustomerView.update() called - receipt length: " + receipt.length()); // Debug output
+        try {
+            // Handle image loading with error handling
+            try {
+                ivProduct.setImage(new Image(imageName));
+            } catch (Exception e) {
+                System.err.println("Error loading image: " + imageName + " - " + e.getMessage());
+                // Try to load a default image or keep the current one
+                try {
+                    ivProduct.setImage(new Image("imageHolder.jpg"));
+                } catch (Exception e2) {
+                    System.err.println("Could not load default image either");
+                }
+            }
+            
+            lbProductInfo.setText(searchResult);
+            taTrolley.setText(trolley);
+            
+            if (!receipt.equals("")) {
+                System.out.println("Switching to receipt page"); // Debug output
+                showTrolleyOrReceiptPage(vbReceiptPage);
+                taReceipt.setText(receipt);
+            } else {
+                System.out.println("Receipt is empty, staying on trolley page"); // Debug output
+            }
+        } catch (Exception e) {
+            System.err.println("Error in CustomerView.update(): " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

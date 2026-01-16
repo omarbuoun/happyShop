@@ -46,6 +46,12 @@ public class OrderFileManager {
 
     //Creates a new order file in the specified directory with the given content.
     public static void createOrderFile(Path dir, int orderId, String orderDetail) throws IOException {
+        // Ensure the directory exists before creating the file
+        if (!Files.exists(dir)) {
+            Files.createDirectories(dir);
+            System.out.println("Created directory: " + dir);
+        }
+        
         String orderFileName = String.valueOf(orderId)+".txt";
         Path path = dir.resolve(orderFileName); // eg. orders/ordered/12.txt
         if(Files.notExists(path)) {
@@ -66,6 +72,12 @@ public class OrderFileManager {
     //Progressing state in orders/progressing
     //Collected state in orders/collected
     public static boolean updateAndMoveOrderFile(int orderId, OrderState newState, Path sourceDir, Path targetDir) throws IOException {
+        // Ensure the target directory exists before moving the file
+        if (!Files.exists(targetDir)) {
+            Files.createDirectories(targetDir);
+            System.out.println("Created directory: " + targetDir);
+        }
+        
         String orderFileName = String.valueOf(orderId)+".txt";
         Path sourcePath = sourceDir.resolve(orderFileName);
         Path targetPath = targetDir.resolve(orderFileName);
@@ -102,6 +114,8 @@ public class OrderFileManager {
                     line = "ProgressingDateTime: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 } else if (newState.equals(OrderState.Collected) && line.startsWith("CollectedDateTime")) {
                     line = "CollectedDateTime: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                } else if (newState.equals(OrderState.Cancelled) && line.startsWith("CancelledDateTime")) {
+                    line = "CancelledDateTime: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 }
                 writer.write(line);
                 writer.newLine();
