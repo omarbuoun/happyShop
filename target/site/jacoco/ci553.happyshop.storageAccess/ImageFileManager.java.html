@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageFileManager.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.storageAccess</a> &gt; <span class="el_source">ImageFileManager.java</span></div><h1>ImageFileManager.java</h1><pre class="source lang-java linenums">package ci553.happyshop.storageAccess;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
+/**
+ * The ImageFileManager class handles the file operations related to product images in the warehouse system.
+ * It is used by the Warehouse model to manage product images.
+ *
+ * - When a product is deleted from stock, its image file is also deleted from the storage location.
+ * - When a new product is added or an existing product's image is changed, the image is copied to the specified
+ *  destination folder with the product's ID as the image file name, including the original file extension.
+ *
+ * The class provides utility methods to delete image files and copy them to a new location.
+ */
+
+<span class="nc" id="L20">public class ImageFileManager {</span>
+    /**
+     * Deletes an image file from the specified folder.
+     *
+     * @param folder The directory where the image is stored.
+     * @param fileName The name of the file to be deleted.
+     * @throws IOException If an I/O error occurs during the file deletion.
+     */
+    public static void deleteImageFile(String folder, String fileName) throws IOException {
+<span class="nc" id="L29">        Path locationFolder = Paths.get(folder); // Folder where the image is stored</span>
+<span class="nc" id="L30">        Path iPath = locationFolder.resolve(fileName); // Full path to the image file</span>
+
+<span class="nc bnc" id="L32" title="All 2 branches missed.">        if (Files.exists(iPath)) { // Check if the file exists</span>
+<span class="nc" id="L33">            Files.delete(iPath); // Permanently delete the file</span>
+<span class="nc" id="L34">            System.out.println(&quot;Deleted: &quot; + iPath);</span>
+        } else {
+<span class="nc" id="L36">            System.out.println(&quot;File not found: &quot; + iPath);</span>
+        }
+<span class="nc" id="L38">    }</span>
+
+    /**
+     * Copies an image file from the source URI to a specified destination folder with a new name.
+     * The new name is the product ID (fileNameWithoutExtension) with the original file extension.
+     *
+     * @param sourceUri The URI of the source image file.
+     * @param destinationFolder The destination folder where the image will be copied.
+     * @param fileNameWithoutExtension The name to assign to the copied image file (without extension).
+     * @return The name of the copied image file (with extension).
+     */
+    public static String copyFileToDestination(String sourceUri, String destinationFolder, String fileNameWithoutExtension) throws IOException {
+        // Get the source file path and file name
+<span class="nc" id="L51">        Path sourcePath = Paths.get(sourceUri);  // Source image uri (e.g., &quot;C:/Users/shan/Desktop/mark.jpg&quot;)</span>
+<span class="nc" id="L52">        String sourceFileName = sourcePath.getFileName().toString();  // e.g., &quot;mark.jpg&quot;</span>
+
+        // Extract file extension from the source file
+<span class="nc" id="L55">        String fileExtension = sourceFileName.substring(sourceFileName.lastIndexOf('.'));  // e.g., &quot;.jpg&quot;</span>
+
+        // Prepare the destination file path
+<span class="nc" id="L58">        Path destinationFolderPath = Paths.get(destinationFolder);  // Destination folder path</span>
+
+<span class="nc" id="L60">        String fileNameWithExtension = fileNameWithoutExtension + fileExtension;</span>
+<span class="nc" id="L61">        Path destinationPath = destinationFolderPath.resolve(fileNameWithExtension);  // Combine the product ID (fileNameWithoutExtension) with the extension</span>
+
+        // Copy the file to the destination folder with the specified name
+<span class="nc" id="L64">        Files.copy(sourcePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);</span>
+<span class="nc" id="L65">        System.out.println(&quot;File copied successfully to: &quot; + destinationPath);</span>
+<span class="nc" id="L66">        return fileNameWithExtension;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

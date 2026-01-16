@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StockAlertService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.service</a> &gt; <span class="el_source">StockAlertService.java</span></div><h1>StockAlertService.java</h1><pre class="source lang-java linenums">package ci553.happyshop.service;
+
+import ci553.happyshop.catalogue.Product;
+import ci553.happyshop.storageAccess.DatabaseRW;
+import ci553.happyshop.storageAccess.DatabaseRWFactory;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+
+/**
+ * Service class for monitoring stock levels and generating low stock alerts.
+ * 
+ * Responsibilities:
+ * - Check products for low stock conditions
+ * - Generate alert messages for low stock products
+ * - Provide threshold-based stock monitoring
+ * 
+ * This service follows the Single Responsibility Principle by
+ * separating stock alert logic from other business operations.
+ */
+<span class="nc" id="L21">public class StockAlertService {</span>
+    
+    /**
+     * Default low stock threshold - products with stock below this will trigger alerts.
+     * This can be configured per product or globally.
+     */
+    public static final int DEFAULT_LOW_STOCK_THRESHOLD = 10;
+
+    /**
+     * Checks if a product has low stock based on the default threshold.
+     * 
+     * @param product The product to check
+     * @return true if stock is below threshold, false otherwise
+     */
+    public static boolean isLowStock(Product product) {
+<span class="fc" id="L36">        return isLowStock(product, DEFAULT_LOW_STOCK_THRESHOLD);</span>
+    }
+
+    /**
+     * Checks if a product has low stock based on a custom threshold.
+     * 
+     * @param product The product to check
+     * @param threshold The stock threshold below which an alert should be triggered
+     * @return true if stock is below threshold, false otherwise
+     */
+    public static boolean isLowStock(Product product, int threshold) {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (product == null) {</span>
+<span class="fc" id="L48">            return false;</span>
+        }
+<span class="pc bpc" id="L50" title="1 of 4 branches missed.">        return product.getStockQuantity() &gt; 0 &amp;&amp; product.getStockQuantity() &lt;= threshold;</span>
+    }
+
+    /**
+     * Checks if a product is out of stock.
+     * 
+     * @param product The product to check
+     * @return true if stock is 0 or less, false otherwise
+     */
+    public static boolean isOutOfStock(Product product) {
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (product == null) {</span>
+<span class="fc" id="L61">            return false;</span>
+        }
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        return product.getStockQuantity() &lt;= 0;</span>
+    }
+
+    /**
+     * Scans all products in the database and returns a list of products with low stock.
+     * 
+     * @return List of products with stock below the threshold
+     * @throws SQLException if there's an error accessing the database
+     */
+    public static ArrayList&lt;Product&gt; scanForLowStockProducts() throws SQLException {
+<span class="nc" id="L73">        return scanForLowStockProducts(DEFAULT_LOW_STOCK_THRESHOLD);</span>
+    }
+
+    /**
+     * Scans all products in the database and returns a list of products with low stock.
+     * 
+     * @param threshold The stock threshold to use
+     * @return List of products with stock below the threshold
+     * @throws SQLException if there's an error accessing the database
+     */
+    public static ArrayList&lt;Product&gt; scanForLowStockProducts(int threshold) throws SQLException {
+<span class="nc" id="L84">        ArrayList&lt;Product&gt; lowStockProducts = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L85">        DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();</span>
+        
+        // Get all products from the database
+<span class="nc" id="L88">        ArrayList&lt;Product&gt; allProducts = databaseRW.getAllProducts();</span>
+        
+        // Check each product for low stock
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        for (Product product : allProducts) {</span>
+<span class="nc bnc" id="L92" title="All 4 branches missed.">            if (isLowStock(product, threshold) || isOutOfStock(product)) {</span>
+<span class="nc" id="L93">                lowStockProducts.add(product);</span>
+            }
+<span class="nc" id="L95">        }</span>
+        
+<span class="nc" id="L97">        return lowStockProducts;</span>
+    }
+
+    /**
+     * Checks a specific product after stock update and generates an alert message if needed.
+     * 
+     * @param productId The product ID to check
+     * @return Alert message if stock is low, null otherwise
+     * @throws SQLException if there's an error accessing the database
+     */
+    public static String checkProductAndGenerateAlert(String productId) throws SQLException {
+<span class="nc" id="L108">        DatabaseRW databaseRW = DatabaseRWFactory.createDatabaseRW();</span>
+<span class="nc" id="L109">        Product product = databaseRW.searchByProductId(productId);</span>
+        
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (product == null) {</span>
+<span class="nc" id="L112">            return null;</span>
+        }
+        
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (isOutOfStock(product)) {</span>
+<span class="nc" id="L116">            return String.format(&quot;⚠️ OUT OF STOCK: Product %s (%s) has 0 units remaining!&quot;,</span>
+<span class="nc" id="L117">                product.getProductId(), product.getProductDescription());</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        } else if (isLowStock(product)) {</span>
+<span class="nc" id="L119">            return String.format(&quot;⚠️ LOW STOCK: Product %s (%s) has only %d units remaining (threshold: %d)&quot;,</span>
+<span class="nc" id="L120">                product.getProductId(), product.getProductDescription(), </span>
+<span class="nc" id="L121">                product.getStockQuantity(), DEFAULT_LOW_STOCK_THRESHOLD);</span>
+        }
+        
+<span class="nc" id="L124">        return null;</span>
+    }
+
+    /**
+     * Generates a formatted alert message for a low stock product.
+     * 
+     * @param product The product with low stock
+     * @return Formatted alert message
+     */
+    public static String generateAlertMessage(Product product) {
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">        if (product == null) {</span>
+<span class="nc" id="L135">            return null;</span>
+        }
+        
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        if (isOutOfStock(product)) {</span>
+<span class="fc" id="L139">            return String.format(&quot;⚠️ OUT OF STOCK\nProduct ID: %s\nDescription: %s\nCurrent Stock: 0\n\nAction Required: Restock immediately!&quot;,</span>
+<span class="fc" id="L140">                product.getProductId(), product.getProductDescription());</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        } else if (isLowStock(product)) {</span>
+<span class="fc" id="L142">            return String.format(&quot;⚠️ LOW STOCK ALERT\nProduct ID: %s\nDescription: %s\nCurrent Stock: %d\nThreshold: %d\n\nConsider restocking soon.&quot;,</span>
+<span class="fc" id="L143">                product.getProductId(), product.getProductDescription(), </span>
+<span class="fc" id="L144">                product.getStockQuantity(), DEFAULT_LOW_STOCK_THRESHOLD);</span>
+        }
+        
+<span class="fc" id="L147">        return null;</span>
+    }
+
+    /**
+     * Checks multiple products and generates a combined alert message.
+     * 
+     * @param products List of products to check
+     * @return Combined alert message for all low stock products, or null if none
+     */
+    public static String generateCombinedAlertMessage(ArrayList&lt;Product&gt; products) {
+<span class="nc bnc" id="L157" title="All 4 branches missed.">        if (products == null || products.isEmpty()) {</span>
+<span class="nc" id="L158">            return null;</span>
+        }
+        
+<span class="nc" id="L161">        ArrayList&lt;Product&gt; lowStockProducts = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L162">        ArrayList&lt;Product&gt; outOfStockProducts = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        for (Product product : products) {</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">            if (isOutOfStock(product)) {</span>
+<span class="nc" id="L166">                outOfStockProducts.add(product);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">            } else if (isLowStock(product)) {</span>
+<span class="nc" id="L168">                lowStockProducts.add(product);</span>
+            }
+<span class="nc" id="L170">        }</span>
+        
+<span class="nc bnc" id="L172" title="All 4 branches missed.">        if (lowStockProducts.isEmpty() &amp;&amp; outOfStockProducts.isEmpty()) {</span>
+<span class="nc" id="L173">            return null;</span>
+        }
+        
+<span class="nc" id="L176">        StringBuilder alert = new StringBuilder();</span>
+<span class="nc" id="L177">        alert.append(&quot;📦 STOCK ALERT SUMMARY\n&quot;);</span>
+<span class="nc" id="L178">        alert.append(&quot;=&quot;.repeat(40)).append(&quot;\n\n&quot;);</span>
+        
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        if (!outOfStockProducts.isEmpty()) {</span>
+<span class="nc" id="L181">            alert.append(&quot;🚨 OUT OF STOCK (&quot;).append(outOfStockProducts.size()).append(&quot;):\n&quot;);</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            for (Product product : outOfStockProducts) {</span>
+<span class="nc" id="L183">                alert.append(String.format(&quot;  • %s - %s (0 units)\n&quot;, </span>
+<span class="nc" id="L184">                    product.getProductId(), product.getProductDescription()));</span>
+<span class="nc" id="L185">            }</span>
+<span class="nc" id="L186">            alert.append(&quot;\n&quot;);</span>
+        }
+        
+<span class="nc bnc" id="L189" title="All 2 branches missed.">        if (!lowStockProducts.isEmpty()) {</span>
+<span class="nc" id="L190">            alert.append(&quot;⚠️ LOW STOCK (&quot;).append(lowStockProducts.size()).append(&quot;):\n&quot;);</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">            for (Product product : lowStockProducts) {</span>
+<span class="nc" id="L192">                alert.append(String.format(&quot;  • %s - %s (%d units)\n&quot;, </span>
+<span class="nc" id="L193">                    product.getProductId(), product.getProductDescription(), </span>
+<span class="nc" id="L194">                    product.getStockQuantity()));</span>
+<span class="nc" id="L195">            }</span>
+        }
+        
+<span class="nc" id="L198">        return alert.toString();</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

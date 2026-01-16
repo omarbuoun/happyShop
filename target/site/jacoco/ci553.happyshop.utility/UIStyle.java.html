@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UIStyle.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.utility</a> &gt; <span class="el_source">UIStyle.java</span></div><h1>UIStyle.java</h1><pre class="source lang-java linenums">package ci553.happyshop.utility;
+
+/**
+ * UIStyle is a centralized Java final class that holds all JavaFX UI-related style and size constants
+ * used across all client views in the system.
+ *
+ * These values are grouped here rather than being hardcoded throughout the codebase:
+ * - improves maintainability, ensures style consistency,
+ * - avoids hardcoded values scattered across the codebase.
+ *
+ * Example usages:
+ * - UIStyle.HistoryWinHeight for setting the height of the order history window
+ * - UIStyle.labelStyle for applying consistent styling to labels
+ *
+ * Design rationale:
+ * - Declared as a final class: prevents inheritance and misuse
+ * - Private constructor: prevents instantiation (this is a static-only utility class)
+ * - Holds only static constants: ensures minimal memory usage and clean syntax
+ *
+ *  Why a Record is NOT appropriate:
+ * - Records are intended for immutable instance data (e.g., DTOs), not static constants
+ * - This class has no record components — everything is static
+ * - We're using this as a utility container, not a data model
+ *
+ *  Reminder:
+ *  Just because a class has no behavior and only data does NOT mean it should be a record.
+ *  If all members are static constants, use a final utility class like this one.
+ */
+
+public final class UIStyle {
+
+    //private constructor prevents instantiation
+<span class="nc" id="L33">    private UIStyle() {</span>
+<span class="nc" id="L34">        throw new UnsupportedOperationException(&quot;UIStyle is a utility class&quot;);</span>
+    }
+
+    public static final int customerWinWidth = 610;
+    public static final int customerWinHeight = 300;
+    public static final int removeProNotifierWinWidth = customerWinWidth / 2 + 160;
+    public static final int removeProNotifierWinHeight = 230;
+
+    public static final int pickerWinWidth = 310;
+    public static final int pickerWinHeight = 300;
+
+    public static final int trackerWinWidth = 210;
+    public static final int trackerWinHeight = 300;
+
+    public static final int warehouseWinWidth = 630;
+    public static final int warehouseWinHeight = 300;
+    public static final int AlertSimWinWidth = 300;
+    public static final int AlertSimWinHeight = 170;
+    public static final int HistoryWinWidth = 300;
+    public static final int HistoryWinHeight = 140;
+
+    public static final int EmergencyExitWinWidth = 200;
+    public static final int EmergencyExitWinHeight = 300;
+
+    public static final String labelTitleStyle = &quot;-fx-font-weight: bold; &quot; +
+            &quot;-fx-font-size: 16px; -fx-text-fill: purple;&quot;;
+
+    public static final String labelStyle = &quot;-fx-font-weight: bold; &quot; +
+            &quot;-fx-font-size: 14px; &quot; +
+            &quot;-fx-text-fill: black; &quot; +
+            &quot;-fx-background-color: lightblue;&quot;;
+
+    public static final String labelLowStockStyle =
+            &quot;-fx-font-size: 12px; -fx-text-fill: red;&quot;;
+
+    public static final String comboBoxStyle = &quot;-fx-font-weight: bold; &quot; +
+            &quot;-fx-font-size: 14px;&quot;;
+
+    public static final String buttonStyle = &quot;-fx-font-size: 15&quot;;
+
+    public static final String rootStyle = &quot;-fx-padding: 8px; &quot; +
+            &quot;-fx-background-color: lightgreen&quot;;
+
+    public static final String rootStyleBlue = &quot;-fx-padding: 8px; &quot; +
+            &quot;-fx-background-color: lightblue&quot;;
+
+    public static final String rootStyleGray = &quot;-fx-padding: 8px; &quot; +
+            &quot;-fx-background-color: lightgray&quot;;
+
+    public static final String rootStyleWarehouse = &quot;-fx-padding: 8px; &quot; +
+            &quot;-fx-background-color: lightpink&quot;;
+
+    public static final String rootStyleYellow = &quot;-fx-padding: 8px; &quot; +
+            &quot;-fx-background-color: lightyellow&quot;;
+
+    public static final String rootVipCustomerStyle = &quot;-fx-padding: 8px; &quot; +
+            &quot;-fx-background-color: burlywood&quot;;
+
+    public static final String spinnerArrowStyle = &quot;-fx-font-size: 12px; -fx-padding: 0;&quot;;
+
+    public static final String textFiledStyle = &quot;-fx-font-size: 16&quot;;
+    public static final String smallTextFiledStyle = &quot;-fx-font-size: 14&quot;;
+    public static final String tinyTextFiledStyle = &quot;-fx-font-size: 12&quot;;
+
+    public static final String labelMulLineStyle = &quot;-fx-font-size: 16px; &quot; +
+            &quot;-fx-background-color: lightpink&quot;;
+
+    public static final String labelPriceStyle = &quot;-fx-font-size: 16px; &quot; +
+            &quot;-fx-background-color: lightyellow&quot;;
+
+    public static final String listViewStyle = &quot;-fx-border-color: #ccc; &quot; +
+            &quot;-fx-border-width: 1px; -fx-background-color: white; -fx-font-size: 14px;&quot;;
+
+    public static final String manageStockChildStyle = &quot;-fx-background-color: lightgrey; &quot; +
+            &quot;-fx-border-color: lightgrey; &quot; +
+            &quot;-fx-border-width: 1px; &quot; +
+            &quot;-fx-padding: 5px;&quot;;
+
+    public static final String manageStockChildStyle1 = &quot;-fx-background-color: lightyellow; &quot; +
+            &quot;-fx-border-color: lightyellow; &quot; +
+            &quot;-fx-border-width: 1px; &quot; +
+            &quot;-fx-padding: 5px;&quot;;
+
+    public static final String greenFillBtnStyle = &quot;-fx-background-color: green; &quot; +
+            &quot;-fx-text-fill: white; -fx-font-size: 14px;&quot;;
+    public static final String redFillBtnStyle = &quot;-fx-background-color: red; &quot; +
+            &quot;-fx-text-fill: white; -fx-font-size: 14px; &quot;;
+
+    public static final String searchBtnStyle = &quot;-fx-background-color: purple; &quot; +
+            &quot;-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;&quot;;
+
+    public static final String grayFillBtnStyle = &quot;-fx-background-color: gray; &quot; +
+            &quot;-fx-text-fill: white; -fx-font-size: 14px; &quot;;
+
+    public static final String blueFillBtnStyle = &quot;-fx-background-color: blue; &quot; +
+            &quot;-fx-text-fill: white; -fx-font-size: 14px;&quot;;
+    public static final String alertBtnStyle = &quot;-fx-background-color: green; &quot; +
+            &quot;-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold;&quot;;
+
+    public static final String alertTitleLabelStyle = &quot;-fx-font-size: 16px; &quot; +
+            &quot;-fx-font-weight: bold; &quot; +
+            &quot;-fx-text-fill: red; &quot; + &quot;-fx-background-color: lightblue;&quot;;
+
+    public static final String alertContentTextAreaStyle = &quot;-fx-font-size: 14px;&quot; +
+            &quot;-fx-font-weight: normal;-fx-control-inner-background: lightyellow; -fx-text-fill: darkblue;&quot;;
+
+    public static final String alertContentUserActionStyle = &quot;-fx-font-size: 14px;&quot; +
+            &quot;-fx-font-weight: normal; -fx-text-fill: green;&quot;;
+
+    public static final String tooltipStyle = &quot;-fx-background-color: lightyellow; -fx-text-fill: red;&quot;;
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ValidationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.service</a> &gt; <span class="el_source">ValidationService.java</span></div><h1>ValidationService.java</h1><pre class="source lang-java linenums">package ci553.happyshop.service;
+
+import ci553.happyshop.storageAccess.DatabaseRW;
+
+import java.sql.SQLException;
+
+/**
+ * Service class for validating user input and business rules.
+ * 
+ * Responsibilities:
+ * - Validate product IDs (format and uniqueness)
+ * - Validate prices (format, range, decimal places)
+ * - Validate stock quantities (format, range)
+ * - Validate product descriptions
+ * - Validate image paths
+ * 
+ * This service follows the Single Responsibility Principle by
+ * centralizing all validation logic in one place, making it
+ * easier to maintain and test.
+ */
+<span class="nc" id="L21">public class ValidationService {</span>
+
+    /**
+     * Validates a product ID format (must be exactly 4 digits).
+     * 
+     * @param productId the product ID to validate
+     * @return true if valid, false otherwise
+     */
+    public static boolean isValidProductIdFormat(String productId) {
+<span class="fc bfc" id="L30" title="All 4 branches covered.">        return productId != null &amp;&amp; productId.matches(&quot;\\d{4}&quot;);</span>
+    }
+
+    /**
+     * Validates that a product ID is available (not already in use).
+     * 
+     * @param productId the product ID to check
+     * @param databaseRW the database access object
+     * @return true if available, false if already in use
+     * @throws SQLException if there's an error accessing the database
+     */
+    public static boolean isProductIdAvailable(String productId, DatabaseRW databaseRW) throws SQLException {
+<span class="fc" id="L42">        return databaseRW.isProIdAvailable(productId);</span>
+    }
+
+    /**
+     * Validates a price string format and value.
+     * 
+     * @param priceStr the price as a string
+     * @return ValidationResult containing validation status and error message
+     */
+    public static ValidationResult validatePrice(String priceStr) {
+<span class="fc" id="L52">        ValidationResult result = new ValidationResult();</span>
+        
+        try {
+<span class="fc" id="L55">            double price = Double.parseDouble(priceStr);</span>
+            
+            // Validate: Ensure at most two decimal places
+<span class="fc bfc" id="L58" title="All 2 branches covered.">            if (!priceStr.matches(&quot;^[0-9]+(\\.[0-9]{0,2})?$&quot;)) {</span>
+<span class="fc" id="L59">                result.addError(&quot;Price can have at most two decimal places.&quot;);</span>
+<span class="fc" id="L60">                return result;</span>
+            }
+            
+<span class="fc bfc" id="L63" title="All 2 branches covered.">            if (price &lt;= 0) {</span>
+<span class="fc" id="L64">                result.addError(&quot;Price must be a positive number.&quot;);</span>
+<span class="fc" id="L65">                return result;</span>
+            }
+            
+<span class="fc" id="L68">            result.setValid(true);</span>
+<span class="fc" id="L69">        } catch (NumberFormatException e) {</span>
+<span class="fc" id="L70">            result.addError(&quot;Invalid price format.&quot;);</span>
+<span class="fc" id="L71">        }</span>
+        
+<span class="fc" id="L73">        return result;</span>
+    }
+
+    /**
+     * Validates a stock quantity string format and value.
+     * 
+     * @param stockStr the stock quantity as a string
+     * @return ValidationResult containing validation status and error message
+     */
+    public static ValidationResult validateStock(String stockStr) {
+<span class="fc" id="L83">        ValidationResult result = new ValidationResult();</span>
+        
+        try {
+<span class="fc" id="L86">            int stock = Integer.parseInt(stockStr);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">            if (stock &lt; 0) {</span>
+<span class="fc" id="L88">                result.addError(&quot;Stock quantity cannot be negative.&quot;);</span>
+<span class="fc" id="L89">                return result;</span>
+            }
+<span class="fc" id="L91">            result.setValid(true);</span>
+<span class="fc" id="L92">        } catch (NumberFormatException e) {</span>
+<span class="fc" id="L93">            result.addError(&quot;Invalid stock quantity format.&quot;);</span>
+<span class="fc" id="L94">        }</span>
+        
+<span class="fc" id="L96">        return result;</span>
+    }
+
+    /**
+     * Validates a stock change amount (for add/subtract operations).
+     * 
+     * @param changeByStr the change amount as a string
+     * @return ValidationResult containing validation status and error message
+     */
+    public static ValidationResult validateStockChangeBy(String changeByStr) {
+<span class="nc" id="L106">        ValidationResult result = new ValidationResult();</span>
+        
+        try {
+<span class="nc" id="L109">            Integer.parseInt(changeByStr);</span>
+<span class="nc" id="L110">            result.setValid(true);</span>
+<span class="nc" id="L111">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L112">            result.addError(&quot;Invalid stock quantity format.&quot;);</span>
+<span class="nc" id="L113">        }</span>
+        
+<span class="nc" id="L115">        return result;</span>
+    }
+
+    /**
+     * Validates that a description is not empty.
+     * 
+     * @param description the description to validate
+     * @return ValidationResult containing validation status and error message
+     */
+    public static ValidationResult validateDescription(String description) {
+<span class="fc" id="L125">        ValidationResult result = new ValidationResult();</span>
+        
+<span class="fc bfc" id="L127" title="All 4 branches covered.">        if (description == null || description.trim().isEmpty()) {</span>
+<span class="fc" id="L128">            result.addError(&quot;Product description cannot be empty.&quot;);</span>
+<span class="fc" id="L129">            return result;</span>
+        }
+        
+<span class="fc" id="L132">        result.setValid(true);</span>
+<span class="fc" id="L133">        return result;</span>
+    }
+
+    /**
+     * Validates that an image path is provided (optional).
+     * Image selection is optional - if not provided, a default image will be used.
+     * 
+     * @param imageUri the image URI/path (can be null or empty)
+     * @return ValidationResult containing validation status (always valid since image is optional)
+     */
+    public static ValidationResult validateImagePath(String imageUri) {
+<span class="fc" id="L144">        ValidationResult result = new ValidationResult();</span>
+        // Image is optional, so validation always passes
+<span class="fc" id="L146">        result.setValid(true);</span>
+<span class="fc" id="L147">        return result;</span>
+    }
+
+    /**
+     * Validates all fields for editing an existing product.
+     * 
+     * @param priceStr the price string
+     * @param stockStr the stock string
+     * @param description the description
+     * @param hasUnappliedStockChange whether there's an unapplied stock change
+     * @return ValidationResult containing all validation errors
+     */
+    public static ValidationResult validateEditProduct(String priceStr, String stockStr, 
+                                                       String description, boolean hasUnappliedStockChange) {
+<span class="fc" id="L161">        ValidationResult result = new ValidationResult();</span>
+        
+        // Validate price
+<span class="fc" id="L164">        ValidationResult priceResult = validatePrice(priceStr);</span>
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">        if (!priceResult.isValid()) {</span>
+<span class="nc" id="L166">            result.addErrors(priceResult.getErrors());</span>
+        }
+        
+        // Validate stock
+<span class="fc" id="L170">        ValidationResult stockResult = validateStock(stockStr);</span>
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">        if (!stockResult.isValid()) {</span>
+<span class="nc" id="L172">            result.addErrors(stockResult.getErrors());</span>
+        }
+        
+        // Validate description
+<span class="fc" id="L176">        ValidationResult descResult = validateDescription(description);</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">        if (!descResult.isValid()) {</span>
+<span class="nc" id="L178">            result.addErrors(descResult.getErrors());</span>
+        }
+        
+        // Check for unapplied stock change
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (hasUnappliedStockChange) {</span>
+<span class="fc" id="L183">            result.addError(&quot;Change stock by not applied.&quot;);</span>
+        }
+        
+<span class="fc" id="L186">        return result;</span>
+    }
+
+    /**
+     * Validates all fields for creating a new product.
+     * 
+     * @param productId the product ID
+     * @param priceStr the price string
+     * @param stockStr the stock string
+     * @param description the description
+     * @param imageUri the image URI
+     * @param databaseRW the database access object
+     * @return ValidationResult containing all validation errors
+     * @throws SQLException if there's an error accessing the database
+     */
+    public static ValidationResult validateNewProduct(String productId, String priceStr, String stockStr,
+                                                       String description, String imageUri, 
+                                                       DatabaseRW databaseRW) throws SQLException {
+<span class="fc" id="L204">        ValidationResult result = new ValidationResult();</span>
+        
+        // Validate product ID format
+<span class="fc bfc" id="L207" title="All 2 branches covered.">        if (!isValidProductIdFormat(productId)) {</span>
+<span class="fc" id="L208">            result.addError(&quot;Product ID must be exactly 4 digits.&quot;);</span>
+        } else {
+            // Check if ID is available
+<span class="fc bfc" id="L211" title="All 2 branches covered.">            if (!isProductIdAvailable(productId, databaseRW)) {</span>
+<span class="fc" id="L212">                result.addError(&quot;Product ID &quot; + productId + &quot; is not available.&quot;);</span>
+            }
+        }
+        
+        // Validate price
+<span class="fc" id="L217">        ValidationResult priceResult = validatePrice(priceStr);</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        if (!priceResult.isValid()) {</span>
+<span class="fc" id="L219">            result.addErrors(priceResult.getErrors());</span>
+        }
+        
+        // Validate stock
+<span class="fc" id="L223">        ValidationResult stockResult = validateStock(stockStr);</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">        if (!stockResult.isValid()) {</span>
+<span class="fc" id="L225">            result.addErrors(stockResult.getErrors());</span>
+        }
+        
+        // Validate description
+<span class="fc" id="L229">        ValidationResult descResult = validateDescription(description);</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">        if (!descResult.isValid()) {</span>
+<span class="fc" id="L231">            result.addErrors(descResult.getErrors());</span>
+        }
+        
+        // Validate image path (optional - no validation needed)
+        // Image selection is optional, so we don't add any errors if it's missing
+        
+        // If no errors were added, mark as valid
+<span class="fc bfc" id="L238" title="All 2 branches covered.">        if (!result.hasErrors()) {</span>
+<span class="fc" id="L239">            result.setValid(true);</span>
+        }
+        
+<span class="fc" id="L242">        return result;</span>
+    }
+
+    /**
+     * Inner class to hold validation results.
+     * Encapsulates whether validation passed and any error messages.
+     */
+<span class="fc" id="L249">    public static class ValidationResult {</span>
+<span class="fc" id="L250">        private boolean valid = false;</span>
+<span class="fc" id="L251">        private StringBuilder errorMessage = new StringBuilder();</span>
+
+        public boolean isValid() {
+<span class="fc" id="L254">            return valid;</span>
+        }
+
+        public void setValid(boolean valid) {
+<span class="fc" id="L258">            this.valid = valid;</span>
+<span class="fc" id="L259">        }</span>
+
+        public void addError(String error) {
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">            if (errorMessage.length() &gt; 0) {</span>
+<span class="nc" id="L263">                errorMessage.append(&quot;\n&quot;);</span>
+            }
+<span class="fc" id="L265">            errorMessage.append(&quot;• &quot;).append(error);</span>
+<span class="fc" id="L266">            valid = false;</span>
+<span class="fc" id="L267">        }</span>
+
+        public void addErrors(StringBuilder errors) {
+<span class="pc bpc" id="L270" title="2 of 4 branches missed.">            if (errors != null &amp;&amp; errors.length() &gt; 0) {</span>
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">                if (errorMessage.length() &gt; 0) {</span>
+<span class="fc" id="L272">                    errorMessage.append(&quot;\n&quot;);</span>
+                }
+<span class="fc" id="L274">                errorMessage.append(errors);</span>
+<span class="fc" id="L275">                valid = false;</span>
+            }
+<span class="fc" id="L277">        }</span>
+
+        public String getErrorMessage() {
+<span class="fc" id="L280">            return errorMessage.toString();</span>
+        }
+
+        public StringBuilder getErrors() {
+<span class="fc" id="L284">            return errorMessage;</span>
+        }
+
+        public boolean hasErrors() {
+<span class="fc bfc" id="L288" title="All 2 branches covered.">            return errorMessage.length() &gt; 0;</span>
+        }
+    }
+}
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

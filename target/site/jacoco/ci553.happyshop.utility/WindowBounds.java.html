@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WindowBounds.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.utility</a> &gt; <span class="el_source">WindowBounds.java</span></div><h1>WindowBounds.java</h1><pre class="source lang-java linenums">package ci553.happyshop.utility;
+
+/**
+ * The WindowBounds class represents the dimensions and position of a window.
+ * It is used to encapsulate a window's x (horizontal position), y (vertical position),
+ * width, and height. This class helps to easily retrieve or manipulate the position
+ * and size of a window, which is especially useful when positioning other UI elements
+ * (like alert simulators or history windows) relative to the main window (warehouse window).
+ *
+ * Example usage:
+ * 1. Getting the position and size of the warehouse window:
+ *    WindowBounds bounds = WarehouseView.getWarehouseWindowBounds();
+ *    double x = bounds.x;
+ *    double y = bounds.y;
+ *    double width = bounds.width;
+ *    double height = bounds.height;
+ *
+ * 2. Using these values to position a new window (e.g., HistoryView, AlertSimulator)
+ *    window.setX(bounds.x + bounds.width + 10);  // Positioning the new window to the right of the warehouse window
+ *    window.setY(bounds.y);                      // Aligning vertically with the warehouse window
+ *
+ * This class helps maintain consistency in window placement and simplifies
+ * window-related calculations, ensuring the UI elements are well positioned.
+ */
+
+
+public class WindowBounds {
+    public double x;
+    public double y;
+    public double width;
+    public double height;
+
+<span class="nc" id="L33">    public WindowBounds(double x, double y, double width, double height) {</span>
+<span class="nc" id="L34">        this.x = x;</span>
+<span class="nc" id="L35">        this.y = y;</span>
+<span class="nc" id="L36">        this.width = width;</span>
+<span class="nc" id="L37">        this.height = height;</span>
+<span class="nc" id="L38">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

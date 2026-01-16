@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WinPosManager.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.utility</a> &gt; <span class="el_source">WinPosManager.java</span></div><h1>WinPosManager.java</h1><pre class="source lang-java linenums">package ci553.happyshop.utility;
+
+import javafx.geometry.Rectangle2D;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
+
+/**
+ * This final class is responsible for managing the dynamic positioning of windows on the screen.
+ * It calculates the optimal position for each new window based on the size of the screen and previously opened windows,
+ * ensuring that windows are spaced out evenly and that new windows do not overlap with existing ones.
+ * The class is designed to prevent instantiation and subclassing, and it provides a single static method,
+ * `registerWindow`, to register new windows and calculate their position on the screen.
+ *
+ * Purpose:
+ * - To automatically arrange windows on the screen, avoiding overlap by dynamically adjusting their positions.
+ * - The windows are arranged row by row with a configurable gap between them, starting from a base position.
+ * - When a row is filled, windows will start in the next row, and if necessary, the windows will stack vertically when the screen is filled.
+ * - This is useful for applications that create multiple windows and need to ensure they are positioned neatly and without overlap.
+ */
+
+
+// final class:  to prevent subclassing
+public final class WinPosManager {
+    // Get the screen size
+<span class="nc" id="L25">    private static final Rectangle2D SCREEN_SIZE = Screen.getPrimary().getVisualBounds();</span>
+<span class="nc" id="L26">    private static final double SCREEN_WIDTH = SCREEN_SIZE.getWidth();</span>
+<span class="nc" id="L27">    private static final double SCREEN_HEIGHT = SCREEN_SIZE.getHeight();</span>
+
+    private static final double BASE_X = 10; // Initial X position
+    private static final double BASE_Y = 10; // Initial Y position
+    private static final double GAP = 10; // Space between windows
+
+<span class="nc" id="L33">    private static double occupiedWidth = 0; // total width of all windows on current row</span>
+<span class="nc" id="L34">    private static double occupiedHeight = 0;</span>
+<span class="nc" id="L35">    private static double x = BASE_X; //x position for current window</span>
+<span class="nc" id="L36">    private static double y = BASE_Y;//y position for current window</span>
+
+    // Private constructor to prevent instantiation
+<span class="nc" id="L39">    private WinPosManager() {</span>
+<span class="nc" id="L40">        throw new UnsupportedOperationException(&quot;final_static class does not have object&quot;);</span>
+    }
+
+    public static void registerWindow(Stage stage, double width, double height) {
+        // Case 1: Fits in current row and within screen height
+<span class="nc bnc" id="L45" title="All 4 branches missed.">        if ((occupiedWidth + width &lt; SCREEN_WIDTH - BASE_X) &amp;&amp;</span>
+                (occupiedHeight + height &lt; SCREEN_HEIGHT - BASE_Y)) {
+<span class="nc" id="L47">            stage.setX(x);</span>
+<span class="nc" id="L48">            stage.setY(y);</span>
+
+<span class="nc" id="L50">            occupiedWidth += width + GAP;</span>
+<span class="nc" id="L51">            x += width + GAP;</span>
+        }
+
+        // Case 2: New row (horizontal overflow, but vertical space available)
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        else if ((occupiedHeight + height &lt; SCREEN_HEIGHT - BASE_Y)) {</span>
+            // Move to next row
+<span class="nc" id="L57">            occupiedWidth = 0;</span>
+<span class="nc" id="L58">            x = BASE_X;</span>
+<span class="nc" id="L59">            y += height + GAP * 4;</span>
+
+<span class="nc" id="L61">            stage.setX(x);</span>
+<span class="nc" id="L62">            stage.setY(y);</span>
+
+<span class="nc" id="L64">            occupiedWidth += width + GAP;</span>
+<span class="nc" id="L65">            x += width + GAP;</span>
+<span class="nc" id="L66">            occupiedHeight += height + GAP;</span>
+        }
+
+        // Case 3: No space — fallback to fixed position (bottom-right stack)
+        else {
+<span class="nc" id="L71">            stage.setX(SCREEN_WIDTH - width - GAP);</span>
+<span class="nc" id="L72">            stage.setY(SCREEN_HEIGHT - height - GAP * 4);</span>
+        }
+<span class="nc" id="L74">    }</span>
+
+
+    // Alternative window positioning strategy, (for reference, not used in this version):
+    // overflow windows are placed in the last row,
+    // continuing horizontally next to the last window.
+    public static void registerWindow2(Stage stage, double width, double height) {
+        // If the new window exceeds the screen width, move to next row
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (occupiedWidth + width &gt; SCREEN_WIDTH - BASE_X) {</span>
+<span class="nc" id="L83">            occupiedWidth = 0; // Reset occupiedWidth</span>
+<span class="nc" id="L84">            x = BASE_X;  //reset x for next row</span>
+<span class="nc" id="L85">            y += height + GAP*4; // update y so that move to next row,</span>
+        }
+
+        // If the new row exceeds screen height, windows are placed in the last row,
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        if (y + height &gt; SCREEN_HEIGHT - BASE_Y) {</span>
+<span class="nc" id="L90">            y -= (height + GAP*4); // Stack on top</span>
+        }
+
+        // Set window position
+<span class="nc" id="L94">        stage.setX(x);</span>
+<span class="nc" id="L95">        stage.setY(y);</span>
+
+        // Update the occupied width and x position for the next window
+<span class="nc" id="L98">        occupiedWidth += width + GAP;</span>
+<span class="nc" id="L99">        x += width + GAP;</span>
+<span class="nc" id="L100">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

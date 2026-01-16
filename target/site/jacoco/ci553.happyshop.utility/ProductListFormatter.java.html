@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProductListFormatter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.utility</a> &gt; <span class="el_source">ProductListFormatter.java</span></div><h1>ProductListFormatter.java</h1><pre class="source lang-java linenums">package ci553.happyshop.utility;
+
+import ci553.happyshop.catalogue.Product;
+
+import java.util.ArrayList;
+
+/**
+ * This class builds a formatted, receipt-like summary from a list of products.
+ * It is used by:
+ * 1. CustomerModel – to display the trolley and receipt
+ * 2. The Order class – to generate a summary for writing to an order's file
+ */
+
+<span class="nc" id="L14">public class ProductListFormatter {</span>
+    /**
+     * Builds a formatted string showing each product's ID, description,
+     * quantity ordered, and total price. Also includes a total price at the end.
+     * @param proList a List of products
+     * @return A nicely formatted string representation of the product list with totals
+     */
+    public static String buildString(ArrayList&lt;Product&gt; proList) {
+<span class="fc" id="L22">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L23">        double totalPrice=0;</span>
+<span class="fc bfc" id="L24" title="All 2 branches covered.">        for (Product pr : proList) {</span>
+<span class="fc" id="L25">            int orderedQuantity = pr.getOrderedQuantity();</span>
+            //%-18.18s, format the argument as a String,
+            // -18 → Left-align the string in 18-character wide space.
+            //.18 → Truncate the string to at most 18 characters
+<span class="fc" id="L29">            String aProduct=String.format(&quot; %-7s %-18.18s (%2d) £%7.2f\n&quot;,</span>
+<span class="fc" id="L30">                    pr.getProductId(),</span>
+<span class="fc" id="L31">                    pr.getProductDescription(),</span>
+<span class="fc" id="L32">                    pr.getOrderedQuantity(),</span>
+<span class="fc" id="L33">                    pr.getUnitPrice() * orderedQuantity);</span>
+
+<span class="fc" id="L35">            sb.append(aProduct);</span>
+<span class="fc" id="L36">            totalPrice = totalPrice + pr.getUnitPrice() * orderedQuantity;</span>
+<span class="fc" id="L37">        }</span>
+
+<span class="fc" id="L39">        String lineSeparator = &quot;-&quot;.repeat(44) + &quot;\n&quot;;</span>
+<span class="fc" id="L40">        String total = String.format(&quot; %-35s £%7.2f\n&quot;, &quot;Total&quot;, totalPrice);</span>
+
+<span class="fc" id="L42">        sb.append(lineSeparator);</span>
+<span class="fc" id="L43">        sb.append(total);</span>
+<span class="fc" id="L44">        return sb.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

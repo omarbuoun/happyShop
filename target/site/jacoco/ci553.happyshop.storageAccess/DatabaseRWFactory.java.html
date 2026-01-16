@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DatabaseRWFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.storageAccess</a> &gt; <span class="el_source">DatabaseRWFactory.java</span></div><h1>DatabaseRWFactory.java</h1><pre class="source lang-java linenums">package ci553.happyshop.storageAccess;
+
+/**
+ * The DatabaseRWFactory class centralizes database configuration and object creation.
+ * It acts as a factory pattern to provide flexible instantiation of the DatabaseRW interface.
+ *
+ * Responsibilities:
+ * - Holds the database URL used to connect to the database.
+ * - Creates instances of DatabaseRW (e.g., DerbyRW, MySQLRW, SQLiteRW).
+ *
+ * Benefits:
+ * - Database Abstraction: Keeps the system decoupled from specific database implementations.
+ * - Easy Future Changes: To switch to a different database, only this factory needs updating.
+ * - Centralized Creation: Simplifies maintenance by managing instantiation in one place.
+ *
+ * Example Usage:
+ *     String url = DatabaseRWFactory.dbURL;
+ *     DatabaseRW db = DatabaseRWFactory.createDatabaseRW();
+ *
+ * This hides the actual implementation (e.g., DerbyRW) from the rest of the system.
+ */
+
+<span class="nc" id="L23">public class DatabaseRWFactory {</span>
+
+<span class="nc" id="L25">    public static String dbURL = &quot;jdbc:derby:happyShopDB&quot;; //or other database URL in the future (eg MySQLRW or SQLiteRW)</span>
+
+    /**
+     * Creates an instance of DatabaseRW (currently returning DerbyRW, but can be modified to return other implementations).
+     */
+    public static DatabaseRW createDatabaseRW() {
+<span class="nc" id="L31">        return new DerbyRW(); // or other database implementations in the future (eg MySQLRW or SQLiteRW)</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

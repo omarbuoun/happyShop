@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DerbyRW.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.storageAccess</a> &gt; <span class="el_source">DerbyRW.java</span></div><h1>DerbyRW.java</h1><pre class="source lang-java linenums">package ci553.happyshop.storageAccess;
+
+import ci553.happyshop.catalogue.Product;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+/** ProductTable definition
+ * &quot;CREATE TABLE ProductTable(&quot; +
+ *         &quot;productID CHAR(4) PRIMARY KEY,&quot; +
+ *         &quot;description VARCHAR(100),&quot; +
+ *         &quot;unitPrice DOUBLE,&quot; +
+ *         &quot;image VARCHAR(100),&quot; +
+ *         &quot;inStock INT,&quot; +
+ *         &quot;CHECK (inStock &gt;= 0)&quot; +
+ *           &quot;)&quot;,
+ */
+
+<span class="nc" id="L21">public class DerbyRW implements DatabaseRW {</span>
+<span class="nc" id="L22">    private static String dbURL = DatabaseRWFactory.dbURL; // Shared by all instances</span>
+<span class="nc" id="L23">    private  Lock lock = new ReentrantLock(); // Each instance has its own lock</span>
+
+    //search product by product Id or name, return a list of products or null
+    //search by Id at first, if get null, search by product name
+    //currently used by warehouseModel.
+    // try to use this method to upgrade customer client so that user can search by id and name
+    public ArrayList&lt;Product&gt; searchProduct(String keyword) throws SQLException {
+<span class="nc" id="L30">        ArrayList&lt;Product&gt; productList = new ArrayList&lt;&gt;();</span>
+
+        // searching by product ID at first
+<span class="nc" id="L33">        Product product = searchByProductId(keyword);</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">        if (product != null) {</span>
+<span class="nc" id="L35">            productList.add(product);</span>
+        } else { // If no products found by ID, searching by product name
+<span class="nc" id="L37">            productList = searchByProName(keyword);</span>
+        }
+
+        // If still no products found, print a message
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        if (productList.isEmpty()) {</span>
+<span class="nc" id="L42">            System.out.println(&quot;Product &quot; + keyword + &quot; not found.&quot;);</span>
+        }
+<span class="nc" id="L44">        return productList;</span>
+    }
+
+    //search  by product Id, return a product or null
+    public Product searchByProductId(String proId) throws SQLException {
+<span class="nc" id="L49">        Product product = null;</span>
+<span class="nc" id="L50">        String query = &quot;SELECT * FROM ProductTable WHERE productID = ?&quot;;</span>
+
+<span class="nc" id="L52">        try (Connection conn = DriverManager.getConnection(dbURL);</span>
+<span class="nc" id="L53">             PreparedStatement pstmt = conn.prepareStatement(query)) {</span>
+            // Set the productId parameter
+<span class="nc" id="L55">            pstmt.setString(1, proId);</span>
+
+<span class="nc" id="L57">            try (ResultSet rs = pstmt.executeQuery()) {</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">                if (rs.next()){</span>
+<span class="nc" id="L59">                    product= makeProObjFromDbRecord(rs);</span>
+<span class="nc" id="L60">                    System.out.println(&quot;Product &quot; + proId + &quot; found.&quot;);</span>
+                }else{
+<span class="nc" id="L62">                    System.out.println(&quot;Product &quot; + proId + &quot; not found.&quot;);</span>
+                }
+
+            }
+<span class="nc" id="L66">        } catch (SQLException e) {</span>
+<span class="nc" id="L67">            e.printStackTrace();</span>
+<span class="nc" id="L68">        }</span>
+<span class="nc" id="L69">        return product;</span>
+    }
+
+    //helper method
+    //search  by product name, return a List of products or null
+    private ArrayList&lt;Product&gt; searchByProName(String name) {
+<span class="nc" id="L75">        ArrayList&lt;Product&gt; productList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L76">        String query = &quot;SELECT * FROM ProductTable WHERE LOWER(description) LIKE LOWER(?)&quot;;</span>
+
+<span class="nc" id="L78">        try (Connection conn = DriverManager.getConnection(dbURL);</span>
+<span class="nc" id="L79">             PreparedStatement stmt = conn.prepareStatement(query)) {</span>
+
+<span class="nc" id="L81">            stmt.setString(1, &quot;%&quot; + name.toLowerCase() + &quot;%&quot;);</span>
+
+<span class="nc" id="L83">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">                while (rs.next()) {</span>
+<span class="nc" id="L85">                    productList.add(makeProObjFromDbRecord(rs)); // Add all matching products to list</span>
+                }
+
+<span class="nc bnc" id="L88" title="All 2 branches missed.">                if (productList.isEmpty()) {</span>
+<span class="nc" id="L89">                    System.out.println(&quot;Product &quot; + name + &quot; not found.&quot;);</span>
+                }
+            }
+
+<span class="nc" id="L93">        } catch (SQLException e) {</span>
+<span class="nc" id="L94">            System.out.println(&quot;Database query error, search by name: &quot; + name + &quot; &quot; + e.getMessage());</span>
+<span class="nc" id="L95">        }</span>
+
+<span class="nc" id="L97">        return productList; // could be empty if no matches</span>
+    }
+
+    //make a Product object from the database record
+    private Product makeProObjFromDbRecord(ResultSet rs) throws SQLException {
+<span class="nc" id="L102">        Product product = null;</span>
+<span class="nc" id="L103">        String productId = rs.getString(&quot;productID&quot;);</span>
+<span class="nc" id="L104">        String description = rs.getString(&quot;description&quot;);</span>
+<span class="nc" id="L105">        String imagePath = rs.getString(&quot;image&quot;);</span>
+<span class="nc" id="L106">        double unitPrice = rs.getDouble(&quot;unitPrice&quot;);</span>
+<span class="nc" id="L107">        int inStock = rs.getInt(&quot;inStock&quot;);</span>
+<span class="nc" id="L108">        product =new Product(productId,description,imagePath,unitPrice,inStock);</span>
+
+        // Show product details
+<span class="nc" id="L111">        System.out.println(&quot;Product ID: &quot; + productId);</span>
+<span class="nc" id="L112">        System.out.println(&quot;Description: &quot; + description);</span>
+<span class="nc" id="L113">        System.out.println(&quot;Image: &quot; + imagePath);</span>
+<span class="nc" id="L114">        System.out.println(&quot;unitPrice: &quot; + unitPrice);</span>
+
+        // Check availability and display message
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        if(inStock &lt;= 0){</span>
+<span class="nc" id="L118">            System.out.println(&quot;Product &quot; + productId+ &quot; is NOT in stock&quot;);</span>
+        }
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        else if(inStock &lt; 10) {</span>
+<span class="nc" id="L121">            System.out.println(&quot;Product &quot; + productId+ &quot;low stock warning!&quot; + inStock + &quot; units left.&quot;);</span>
+        }
+        else {
+<span class="nc" id="L124">            System.out.println(&quot;Product &quot; + productId+ &quot; is available&quot;);</span>
+        }
+
+<span class="nc" id="L127">        System.out.println(&quot;-----&quot;); // Divider for readability</span>
+<span class="nc" id="L128">        return product;</span>
+    }
+
+    public ArrayList&lt;Product&gt; purchaseStocks(ArrayList&lt;Product&gt; proList) throws SQLException {
+<span class="nc" id="L132">        lock.lock();  // Lock the critical section to prevent concurrent access</span>
+<span class="nc" id="L133">        ArrayList&lt;Product&gt; insufficientProducts = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L135">        String checkSql = &quot;SELECT inStock FROM ProductTable WHERE productId = ?&quot;;</span>
+<span class="nc" id="L136">        String updateSql = &quot;UPDATE ProductTable SET inStock = inStock - ? WHERE productId = ?&quot;;</span>
+
+        // Use try-with-resources for Connection and PreparedStatements
+<span class="nc" id="L139">        try (Connection conn = DriverManager.getConnection(dbURL)) {</span>
+<span class="nc" id="L140">            conn.setAutoCommit(false); // Turn off auto-commit for transaction</span>
+
+            // Use a second try-with-resources for the PreparedStatements
+<span class="nc" id="L143">            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql);</span>
+<span class="nc" id="L144">                 PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {</span>
+
+<span class="nc" id="L146">                boolean allSufficient = true; // Flag to track if all products have sufficient stock</span>
+
+<span class="nc bnc" id="L148" title="All 2 branches missed.">                for (Product product : proList) {</span>
+<span class="nc" id="L149">                    checkStmt.setString(1, product.getProductId());</span>
+<span class="nc" id="L150">                    ResultSet rs = checkStmt.executeQuery();</span>
+
+<span class="nc bnc" id="L152" title="All 2 branches missed.">                    if (rs.next()) {</span>
+<span class="nc" id="L153">                        int currentStock = rs.getInt(&quot;inStock&quot;);</span>
+<span class="nc" id="L154">                        int newStock = currentStock - product.getOrderedQuantity();</span>
+
+                        // Debugging: Print values before update
+<span class="nc" id="L157">                        System.out.println(&quot;Product ID: &quot; + product.getProductId());</span>
+<span class="nc" id="L158">                        System.out.println(&quot;Before change: &quot; + currentStock);</span>
+<span class="nc" id="L159">                        System.out.println(&quot;Quantity Ordered: &quot; + product.getOrderedQuantity());</span>
+
+<span class="nc bnc" id="L161" title="All 2 branches missed.">                        if (newStock &gt;= 0) { // Ensure stock doesn't go negative</span>
+<span class="nc" id="L162">                            updateStmt.setInt(1, product.getOrderedQuantity());</span>
+<span class="nc" id="L163">                            updateStmt.setString(2, product.getProductId());</span>
+<span class="nc" id="L164">                            updateStmt.addBatch();</span>
+
+                            // Debugging: Print values after update
+<span class="nc" id="L167">                            System.out.println(&quot;After change: &quot; + newStock);</span>
+<span class="nc" id="L168">                            System.out.println(&quot;Update successful for Product ID: &quot; + product.getProductId());</span>
+                        } else {
+<span class="nc" id="L170">                            insufficientProducts.add(product);</span>
+<span class="nc" id="L171">                            allSufficient = false; // Mark that there's at least one insufficient product</span>
+<span class="nc" id="L172">                            System.out.println(&quot;Not enough stock for Product ID: &quot; + product.getProductId());</span>
+                        }
+<span class="nc" id="L174">                        System.out.println(&quot;--------------------------------&quot;);</span>
+                    }
+<span class="nc" id="L176">                }</span>
+
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                if (allSufficient) {</span>
+                    // If all products have sufficient stock, execute the batch and commit
+<span class="nc" id="L180">                    updateStmt.executeBatch();</span>
+<span class="nc" id="L181">                    conn.commit();  // Commit all updates if all updates succeed</span>
+<span class="nc" id="L182">                    System.out.println(&quot;Database update successful.&quot;);</span>
+                } else {
+                    // If there's insufficient stock for any product, rollback the entire transaction
+<span class="nc" id="L185">                    conn.rollback();</span>
+<span class="nc" id="L186">                    System.out.println(&quot;Insufficient stock for some products, all updates rolled back.&quot;);</span>
+                }
+
+<span class="nc" id="L189">            } catch (SQLException e) {</span>
+<span class="nc" id="L190">                conn.rollback();  // Rollback if anything failed inside</span>
+<span class="nc" id="L191">                System.out.println(&quot;Database update error, update failed&quot;);</span>
+<span class="nc" id="L192">            }</span>
+        } finally {
+<span class="nc" id="L194">            lock.unlock(); // Always release the lock after the operation</span>
+        }
+
+<span class="nc" id="L197">        return insufficientProducts;</span>
+    }
+
+
+    //warehouse edits an existing product
+    public void updateProduct(String id, String des, double price, String iName, int stock) throws SQLException {
+<span class="nc" id="L203">        lock.lock();</span>
+<span class="nc" id="L204">        String selectSql = &quot;SELECT * FROM ProductTable WHERE productID = ?&quot;;</span>
+<span class="nc" id="L205">        String updateSql = &quot;UPDATE ProductTable SET &quot; +</span>
+                &quot;description = ?, &quot; +
+                &quot;unitPrice = ?, &quot; +
+                &quot;image = ?, &quot;+
+                &quot;inStock = ? &quot; +
+                &quot;WHERE productID = ?&quot;;
+
+<span class="nc" id="L212">        try (Connection conn = DriverManager.getConnection(dbURL);</span>
+<span class="nc" id="L213">             PreparedStatement selectStmt = conn.prepareStatement(selectSql);</span>
+<span class="nc" id="L214">             PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {</span>
+
+            // Print Before Update
+<span class="nc" id="L217">            selectStmt.setString(1, id);</span>
+<span class="nc" id="L218">            try (ResultSet rs = selectStmt.executeQuery()) {</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">                if (rs.next()) {</span>
+<span class="nc" id="L220">                    System.out.println(&quot;Before Update:&quot;);</span>
+<span class="nc" id="L221">                    System.out.println(&quot;ID: &quot; + rs.getString(&quot;productID&quot;));</span>
+<span class="nc" id="L222">                    System.out.println(&quot;Description: &quot; + rs.getString(&quot;description&quot;));</span>
+<span class="nc" id="L223">                    System.out.println(&quot;Unit Price: &quot; + rs.getDouble(&quot;unitPrice&quot;));</span>
+<span class="nc" id="L224">                    System.out.println(&quot;Stock: &quot; + rs.getInt(&quot;inStock&quot;));</span>
+<span class="nc" id="L225">                    System.out.println(&quot;Image: &quot; + rs.getString(&quot;image&quot;));</span>
+                } else {
+<span class="nc" id="L227">                    System.out.println(&quot;Product not found: &quot; + id);</span>
+<span class="nc" id="L228">                    return; // Exit if product doesn't exist</span>
+                }
+<span class="nc bnc" id="L230" title="All 2 branches missed.">            }</span>
+
+            // Perform Update
+<span class="nc" id="L233">            updateStmt.setString(1, des);</span>
+<span class="nc" id="L234">            updateStmt.setDouble(2, price);</span>
+<span class="nc" id="L235">            updateStmt.setString(3, iName);</span>
+<span class="nc" id="L236">            updateStmt.setInt(4, stock);</span>
+<span class="nc" id="L237">            updateStmt.setString(5, id);</span>
+<span class="nc" id="L238">            updateStmt.executeUpdate();</span>
+
+            // Print After Update
+<span class="nc" id="L241">            try (ResultSet rs = selectStmt.executeQuery()) {</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">                if (rs.next()) {</span>
+<span class="nc" id="L243">                    System.out.println(&quot;After Update:&quot;);</span>
+<span class="nc" id="L244">                    System.out.println(&quot;ID: &quot; + rs.getString(&quot;productID&quot;));</span>
+<span class="nc" id="L245">                    System.out.println(&quot;Description: &quot; + rs.getString(&quot;description&quot;));</span>
+<span class="nc" id="L246">                    System.out.println(&quot;Unit Price: &quot; + rs.getDouble(&quot;unitPrice&quot;));</span>
+<span class="nc" id="L247">                    System.out.println(&quot;Stock: &quot; + rs.getInt(&quot;inStock&quot;));</span>
+<span class="nc" id="L248">                    System.out.println(&quot;image: &quot; + rs.getString(&quot;image&quot;));</span>
+                }
+            }
+<span class="nc bnc" id="L251" title="All 6 branches missed.">        }</span>
+        finally {
+<span class="nc" id="L253">            lock.unlock(); // Always release the lock after the operation</span>
+        }
+<span class="nc" id="L255">    }</span>
+
+//warehouse delete an existing product
+    public void deleteProduct(String proId) throws SQLException {
+<span class="nc" id="L259">        lock.lock();</span>
+<span class="nc" id="L260">        String selectSql = &quot;SELECT * FROM ProductTable WHERE productID = ?&quot;;</span>
+<span class="nc" id="L261">        String deleteSql = &quot;DELETE FROM ProductTable WHERE productID = ?&quot;;</span>
+
+<span class="nc" id="L263">        try (Connection conn = DriverManager.getConnection(dbURL);</span>
+<span class="nc" id="L264">             PreparedStatement selectStmt = conn.prepareStatement(selectSql);</span>
+<span class="nc" id="L265">             PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {</span>
+<span class="nc" id="L266">            conn.setAutoCommit(true); // Set auto-commit to true immediately</span>
+
+            // print product details before deletion
+<span class="nc" id="L269">            selectStmt.setString(1, proId);</span>
+<span class="nc" id="L270">            try (ResultSet rs = selectStmt.executeQuery()) {</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">                if (rs.next()) {</span>
+<span class="nc" id="L272">                    System.out.println(&quot;Before delete:&quot;);</span>
+<span class="nc" id="L273">                    System.out.println(&quot;ID: &quot; + rs.getString(&quot;productID&quot;));</span>
+<span class="nc" id="L274">                    System.out.println(&quot;Description: &quot; + rs.getString(&quot;description&quot;));</span>
+<span class="nc" id="L275">                    System.out.println(&quot;Unit Price: &quot; + rs.getDouble(&quot;unitPrice&quot;));</span>
+<span class="nc" id="L276">                    System.out.println(&quot;Stock: &quot; + rs.getInt(&quot;inStock&quot;));</span>
+                } else {
+<span class="nc" id="L278">                    System.out.println(&quot;Product not found: &quot; + proId);</span>
+<span class="nc" id="L279">                    return; // Exit if product does not exist</span>
+                }
+<span class="nc bnc" id="L281" title="All 2 branches missed.">            }</span>
+
+            // delete from database
+<span class="nc" id="L284">            deleteStmt.setString(1, proId);</span>
+<span class="nc" id="L285">            deleteStmt.executeUpdate();</span>
+<span class="nc" id="L286">            System.out.println(&quot;Product &quot; + proId + &quot; deleted from database.&quot;);</span>
+<span class="nc bnc" id="L287" title="All 6 branches missed.">        }</span>
+
+        finally {
+<span class="nc" id="L290">            lock.unlock(); // Always release the lock after the operation</span>
+        }
+<span class="nc" id="L292">    }</span>
+
+    //check if product ID is unique
+    //warehouse tries to add a new prodcut, id must be unique
+    public boolean isProIdAvailable(String proId) throws SQLException {
+<span class="nc" id="L297">        String query = &quot;SELECT COUNT(*) FROM ProductTable WHERE productID = ?&quot;;</span>
+                             //the count of records that match the given proId.
+<span class="nc" id="L299">        try (Connection conn = DriverManager.getConnection(dbURL);</span>
+<span class="nc" id="L300">             PreparedStatement stmt = conn.prepareStatement(query)) {</span>
+<span class="nc" id="L301">            stmt.setString(1, proId);</span>
+<span class="nc" id="L302">            ResultSet rs = stmt.executeQuery();</span>
+            // the rs is the COUNT(*) result (a single number): how many records that match the given proId.
+            // If count &gt; 0, the ID is already in the database, so it's not available, return false
+            // If count = 0, the ID is available, return true
+<span class="nc bnc" id="L306" title="All 2 branches missed.">            if (rs.next()) { // Move cursor to the first (and only) row</span>
+<span class="nc" id="L307">                int count = rs.getInt(1); // Get the first column value (the count)</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">                if (count == 0) return true;</span>
+<span class="nc" id="L309">                else return false;</span>
+            }
+<span class="nc" id="L311">            return false; // Default case (should not happen)</span>
+<span class="nc bnc" id="L312" title="All 8 branches missed.">        }</span>
+    }
+
+    //   /images/0001TV.jpg
+    //warehouse adds a new product to database
+    public void insertNewProduct(String id, String des,double price,String image,int stock) throws SQLException {
+<span class="nc" id="L318">        lock.lock();</span>
+<span class="nc" id="L319">        String insertSql = &quot;INSERT INTO ProductTable VALUES(?, ?, ?, ?, ?)&quot;;</span>
+<span class="nc" id="L320">        String selectSql = &quot;SELECT * FROM ProductTable WHERE productID = ?&quot;;</span>
+<span class="nc" id="L321">        try (Connection conn = DriverManager.getConnection(dbURL);</span>
+<span class="nc" id="L322">        PreparedStatement insertStmt = conn.prepareStatement(insertSql);</span>
+<span class="nc" id="L323">        PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {</span>
+<span class="nc" id="L324">            conn.setAutoCommit(true); // Set auto-commit to true immediately</span>
+<span class="nc" id="L325">            insertStmt.setString(1, id);</span>
+<span class="nc" id="L326">            insertStmt.setString(2, des);</span>
+<span class="nc" id="L327">            insertStmt.setDouble(3, price);</span>
+<span class="nc" id="L328">            insertStmt.setString(4, image);</span>
+<span class="nc" id="L329">            insertStmt.setInt(5, stock);</span>
+<span class="nc" id="L330">            selectStmt.setString(1, id);</span>
+<span class="nc" id="L331">            insertStmt.executeUpdate();</span>
+<span class="nc" id="L332">            ResultSet rs = selectStmt.executeQuery();</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">            if (rs.next()) { //print the inserted record</span>
+<span class="nc" id="L334">                System.out.println(&quot;Insert successful for Product ID: \&quot; + id&quot;);</span>
+<span class="nc" id="L335">                System.out.println(&quot;ID: &quot; + rs.getString(&quot;productID&quot;));</span>
+<span class="nc" id="L336">                System.out.println(&quot;Description: &quot; + rs.getString(&quot;description&quot;));</span>
+<span class="nc" id="L337">                System.out.println(&quot;Unit Price: &quot; + rs.getDouble(&quot;unitPrice&quot;));</span>
+<span class="nc" id="L338">                System.out.println(&quot;Stock: &quot; + rs.getInt(&quot;inStock&quot;));</span>
+            }
+        }
+        finally {
+<span class="nc" id="L342">            lock.unlock(); // Always release the lock after the operation</span>
+        }
+<span class="nc" id="L344">    }</span>
+
+    /**
+     * Restores stock quantities for products when an order is cancelled.
+     * This method increases the stock quantity for each product by the ordered quantity.
+     * 
+     * @param proList the list of products with ordered quantities to restore
+     * @throws SQLException if a database access error occurs
+     */
+    public void restoreStock(ArrayList&lt;Product&gt; proList) throws SQLException {
+<span class="nc" id="L354">        lock.lock();</span>
+<span class="nc" id="L355">        String updateSql = &quot;UPDATE ProductTable SET inStock = inStock + ? WHERE productId = ?&quot;;</span>
+
+<span class="nc" id="L357">        try (Connection conn = DriverManager.getConnection(dbURL)) {</span>
+<span class="nc" id="L358">            conn.setAutoCommit(false); // Turn off auto-commit for transaction</span>
+
+<span class="nc" id="L360">            try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {</span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">                for (Product product : proList) {</span>
+<span class="nc" id="L362">                    updateStmt.setInt(1, product.getOrderedQuantity());</span>
+<span class="nc" id="L363">                    updateStmt.setString(2, product.getProductId());</span>
+<span class="nc" id="L364">                    updateStmt.addBatch();</span>
+<span class="nc" id="L365">                }</span>
+
+                // Execute all updates in a batch
+<span class="nc" id="L368">                updateStmt.executeBatch();</span>
+<span class="nc" id="L369">                conn.commit(); // Commit all updates</span>
+<span class="nc" id="L370">                System.out.println(&quot;Stock restored successfully for cancelled order.&quot;);</span>
+<span class="nc" id="L371">            } catch (SQLException e) {</span>
+<span class="nc" id="L372">                conn.rollback(); // Rollback if anything failed</span>
+<span class="nc" id="L373">                System.err.println(&quot;Error restoring stock: &quot; + e.getMessage());</span>
+<span class="nc" id="L374">                throw e;</span>
+<span class="nc" id="L375">            }</span>
+        } finally {
+<span class="nc" id="L377">            lock.unlock(); // Always release the lock after the operation</span>
+        }
+<span class="nc" id="L379">    }</span>
+
+    /**
+     * Retrieves all products from the database.
+     * 
+     * @return a list of all products in the database
+     * @throws SQLException if a database access error occurs
+     */
+    public ArrayList&lt;Product&gt; getAllProducts() throws SQLException {
+<span class="nc" id="L388">        ArrayList&lt;Product&gt; productList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L389">        String query = &quot;SELECT * FROM ProductTable ORDER BY productID&quot;;</span>
+
+<span class="nc" id="L391">        try (Connection conn = DriverManager.getConnection(dbURL);</span>
+<span class="nc" id="L392">             PreparedStatement stmt = conn.prepareStatement(query);</span>
+<span class="nc" id="L393">             ResultSet rs = stmt.executeQuery()) {</span>
+            
+<span class="nc bnc" id="L395" title="All 2 branches missed.">            while (rs.next()) {</span>
+<span class="nc" id="L396">                productList.add(makeProObjFromDbRecord(rs));</span>
+            }
+        }
+
+<span class="nc" id="L400">        return productList;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

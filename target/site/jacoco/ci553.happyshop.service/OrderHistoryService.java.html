@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderHistoryService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.service</a> &gt; <span class="el_source">OrderHistoryService.java</span></div><h1>OrderHistoryService.java</h1><pre class="source lang-java linenums">package ci553.happyshop.service;
+
+import ci553.happyshop.catalogue.Order;
+import ci553.happyshop.catalogue.Product;
+import ci553.happyshop.orderManagement.OrderState;
+import ci553.happyshop.storageAccess.OrderFileManager;
+import ci553.happyshop.utility.StorageLocation;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+
+/**
+ * Service class for managing order history and analytics.
+ * 
+ * Responsibilities:
+ * - Load order history from collected and cancelled folders
+ * - Calculate order statistics (total orders, revenue, popular products)
+ * - Provide data for order history display
+ * - Support export functionality
+ * 
+ * This service follows the Single Responsibility Principle by
+ * separating order history operations from business logic.
+ */
+<span class="nc" id="L28">public class OrderHistoryService {</span>
+    
+<span class="nc" id="L30">    private static final Path collectedPath = StorageLocation.collectedPath;</span>
+<span class="nc" id="L31">    private static final Path cancelledPath = StorageLocation.cancelledPath;</span>
+
+    /**
+     * Loads all historical orders from collected and cancelled folders.
+     * 
+     * @return List of order summary strings (ID, State, Date, Total)
+     * @throws IOException if there's an error reading order files
+     */
+    public static ArrayList&lt;String&gt; loadOrderHistory() throws IOException {
+<span class="nc" id="L40">        ArrayList&lt;String&gt; history = new ArrayList&lt;&gt;();</span>
+        
+        // Load collected orders
+<span class="nc" id="L43">        history.addAll(loadOrdersFromFolder(collectedPath, OrderState.Collected));</span>
+        
+        // Load cancelled orders
+<span class="nc" id="L46">        history.addAll(loadOrdersFromFolder(cancelledPath, OrderState.Cancelled));</span>
+        
+<span class="nc" id="L48">        return history;</span>
+    }
+
+    /**
+     * Loads orders from a specific folder and formats them for display.
+     * 
+     * @param folderPath The folder to read orders from
+     * @param state The state of orders in this folder
+     * @return List of formatted order strings
+     * @throws IOException if there's an error reading files
+     */
+    private static ArrayList&lt;String&gt; loadOrdersFromFolder(Path folderPath, OrderState state) throws IOException {
+<span class="nc" id="L60">        ArrayList&lt;String&gt; orders = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc bnc" id="L62" title="All 4 branches missed.">        if (!Files.exists(folderPath) || !Files.isDirectory(folderPath)) {</span>
+<span class="nc" id="L63">            return orders;</span>
+        }
+
+<span class="nc" id="L66">        try (Stream&lt;Path&gt; fileStream = Files.list(folderPath)) {</span>
+<span class="nc" id="L67">            List&lt;Path&gt; files = fileStream</span>
+<span class="nc" id="L68">                .filter(Files::isRegularFile)</span>
+<span class="nc" id="L69">                .filter(path -&gt; path.getFileName().toString().endsWith(&quot;.txt&quot;))</span>
+<span class="nc" id="L70">                .sorted((p1, p2) -&gt; {</span>
+                    // Sort by order ID (extracted from filename) in descending order
+                    try {
+<span class="nc" id="L73">                        int id1 = Integer.parseInt(p1.getFileName().toString().replace(&quot;.txt&quot;, &quot;&quot;));</span>
+<span class="nc" id="L74">                        int id2 = Integer.parseInt(p2.getFileName().toString().replace(&quot;.txt&quot;, &quot;&quot;));</span>
+<span class="nc" id="L75">                        return Integer.compare(id2, id1); // Descending order</span>
+<span class="nc" id="L76">                    } catch (NumberFormatException e) {</span>
+<span class="nc" id="L77">                        return 0;</span>
+                    }
+                })
+<span class="nc" id="L80">                .toList();</span>
+
+<span class="nc bnc" id="L82" title="All 2 branches missed.">            for (Path file : files) {</span>
+                try {
+<span class="nc" id="L84">                    String fileName = file.getFileName().toString();</span>
+<span class="nc" id="L85">                    int orderId = Integer.parseInt(fileName.substring(0, fileName.lastIndexOf('.')));</span>
+<span class="nc" id="L86">                    String orderContent = OrderFileManager.readOrderFile(folderPath, orderId);</span>
+<span class="nc" id="L87">                    String formatted = formatOrderSummary(orderId, state, orderContent);</span>
+<span class="nc" id="L88">                    orders.add(formatted);</span>
+<span class="nc" id="L89">                } catch (Exception e) {</span>
+<span class="nc" id="L90">                    System.err.println(&quot;Error reading order file: &quot; + file + &quot; - &quot; + e.getMessage());</span>
+<span class="nc" id="L91">                }</span>
+<span class="nc" id="L92">            }</span>
+        }
+        
+<span class="nc" id="L95">        return orders;</span>
+    }
+
+    /**
+     * Formats an order summary for display in the history view.
+     * 
+     * @param orderId The order ID
+     * @param state The order state
+     * @param orderContent The full order file content
+     * @return Formatted string for display
+     */
+    private static String formatOrderSummary(int orderId, OrderState state, String orderContent) {
+<span class="nc" id="L107">        String[] lines = orderContent.split(&quot;\n&quot;);</span>
+<span class="nc" id="L108">        String dateTime = &quot;&quot;;</span>
+<span class="nc" id="L109">        double total = 0.0;</span>
+        
+        // Extract date/time based on state
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        for (String line : lines) {</span>
+<span class="nc bnc" id="L113" title="All 4 branches missed.">            if (state == OrderState.Collected &amp;&amp; line.startsWith(&quot;CollectedDateTime:&quot;)) {</span>
+<span class="nc" id="L114">                dateTime = line.substring(&quot;CollectedDateTime:&quot;.length()).trim();</span>
+<span class="nc bnc" id="L115" title="All 4 branches missed.">            } else if (state == OrderState.Cancelled &amp;&amp; line.startsWith(&quot;CancelledDateTime:&quot;)) {</span>
+<span class="nc" id="L116">                dateTime = line.substring(&quot;CancelledDateTime:&quot;.length()).trim();</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">            } else if (line.startsWith(&quot;Total&quot;)) {</span>
+                // Extract total: &quot; Total                               £  66.97&quot;
+                try {
+<span class="nc" id="L120">                    String totalStr = line.substring(line.indexOf(&quot;£&quot;) + 1).trim();</span>
+<span class="nc" id="L121">                    total = Double.parseDouble(totalStr);</span>
+<span class="nc" id="L122">                } catch (Exception e) {</span>
+                    // If parsing fails, total remains 0.0
+<span class="nc" id="L124">                }</span>
+            }
+        }
+        
+<span class="nc" id="L128">        return String.format(&quot;Order #%d | %s | %s | £%.2f&quot;, orderId, state, dateTime, total);</span>
+    }
+
+    /**
+     * Calculates order statistics from historical orders.
+     * 
+     * @return OrderStatistics object containing calculated metrics
+     * @throws IOException if there's an error reading order files
+     */
+    public static OrderStatistics calculateStatistics() throws IOException {
+<span class="nc" id="L138">        ArrayList&lt;String&gt; history = loadOrderHistory();</span>
+        
+<span class="nc" id="L140">        int totalOrders = history.size();</span>
+<span class="nc" id="L141">        double totalRevenue = 0.0;</span>
+<span class="nc" id="L142">        int collectedOrders = 0;</span>
+<span class="nc" id="L143">        int cancelledOrders = 0;</span>
+        
+        // Parse revenue from history strings
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        for (String order : history) {</span>
+            try {
+                // Extract total from format: &quot;Order #X | State | Date | £XX.XX&quot;
+<span class="nc" id="L149">                int poundIndex = order.lastIndexOf(&quot;£&quot;);</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">                if (poundIndex != -1) {</span>
+<span class="nc" id="L151">                    String totalStr = order.substring(poundIndex + 1).trim();</span>
+<span class="nc" id="L152">                    totalRevenue += Double.parseDouble(totalStr);</span>
+                }
+                
+<span class="nc bnc" id="L155" title="All 2 branches missed.">                if (order.contains(&quot;Collected&quot;)) {</span>
+<span class="nc" id="L156">                    collectedOrders++;</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">                } else if (order.contains(&quot;Cancelled&quot;)) {</span>
+<span class="nc" id="L158">                    cancelledOrders++;</span>
+                }
+<span class="nc" id="L160">            } catch (Exception e) {</span>
+                // Skip orders with parsing errors
+<span class="nc" id="L162">            }</span>
+<span class="nc" id="L163">        }</span>
+        
+<span class="nc" id="L165">        return new OrderStatistics(totalOrders, totalRevenue, collectedOrders, cancelledOrders);</span>
+    }
+
+    /**
+     * Data class for order statistics.
+     */
+    public static class OrderStatistics {
+        public final int totalOrders;
+        public final double totalRevenue;
+        public final int collectedOrders;
+        public final int cancelledOrders;
+        public final double averageOrderValue;
+        public final double cancellationRate;
+
+<span class="nc" id="L179">        public OrderStatistics(int totalOrders, double totalRevenue, int collectedOrders, int cancelledOrders) {</span>
+<span class="nc" id="L180">            this.totalOrders = totalOrders;</span>
+<span class="nc" id="L181">            this.totalRevenue = totalRevenue;</span>
+<span class="nc" id="L182">            this.collectedOrders = collectedOrders;</span>
+<span class="nc" id="L183">            this.cancelledOrders = cancelledOrders;</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            this.averageOrderValue = totalOrders &gt; 0 ? totalRevenue / totalOrders : 0.0;</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">            this.cancellationRate = totalOrders &gt; 0 ? (double) cancelledOrders / totalOrders * 100 : 0.0;</span>
+<span class="nc" id="L186">        }</span>
+
+        @Override
+        public String toString() {
+<span class="nc" id="L190">            return String.format(</span>
+                &quot;Total Orders: %d\n&quot; +
+                &quot;Total Revenue: £%.2f\n&quot; +
+                &quot;Collected Orders: %d\n&quot; +
+                &quot;Cancelled Orders: %d\n&quot; +
+                &quot;Average Order Value: £%.2f\n&quot; +
+                &quot;Cancellation Rate: %.1f%%&quot;,
+<span class="nc" id="L197">                totalOrders, totalRevenue, collectedOrders, cancelledOrders,</span>
+<span class="nc" id="L198">                averageOrderValue, cancellationRate</span>
+            );
+        }
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TrolleyService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.service</a> &gt; <span class="el_source">TrolleyService.java</span></div><h1>TrolleyService.java</h1><pre class="source lang-java linenums">package ci553.happyshop.service;
+
+import ci553.happyshop.catalogue.Product;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Service class responsible for managing trolley operations.
+ * This class handles business logic related to trolley management,
+ * including merging duplicate products and sorting.
+ * 
+ * Responsibilities:
+ * - Merge products with the same ID by combining their quantities
+ * - Sort products in the trolley by product ID
+ * - Maintain trolley organization and consistency
+ * 
+ * This service follows the Single Responsibility Principle by
+ * separating trolley management logic from the CustomerModel.
+ */
+<span class="nc" id="L23">public class TrolleyService {</span>
+
+    /**
+     * Merges products with the same product ID by combining their quantities,
+     * and sorts the resulting list by product ID in ascending order.
+     * 
+     * When multiple instances of the same product exist in the trolley,
+     * they are combined into a single product entry with the total quantity.
+     * 
+     * @param trolley The list of products in the trolley (may contain duplicates)
+     * @return A new ArrayList with merged and sorted products
+     */
+    public static ArrayList&lt;Product&gt; mergeAndSort(ArrayList&lt;Product&gt; trolley) {
+<span class="fc bfc" id="L36" title="All 4 branches covered.">        if (trolley == null || trolley.isEmpty()) {</span>
+<span class="fc" id="L37">            return new ArrayList&lt;&gt;();</span>
+        }
+
+        // Step 1: Merge products by ID (combine quantities)
+<span class="fc" id="L41">        Map&lt;String, Product&gt; mergedProducts = new HashMap&lt;&gt;();</span>
+        
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        for (Product product : trolley) {</span>
+<span class="fc" id="L44">            String productId = product.getProductId();</span>
+            
+<span class="fc bfc" id="L46" title="All 2 branches covered.">            if (mergedProducts.containsKey(productId)) {</span>
+                // Product already exists - combine quantities
+<span class="fc" id="L48">                Product existing = mergedProducts.get(productId);</span>
+<span class="fc" id="L49">                int newQuantity = existing.getOrderedQuantity() + product.getOrderedQuantity();</span>
+<span class="fc" id="L50">                existing.setOrderedQuantity(newQuantity);</span>
+<span class="fc" id="L51">            } else {</span>
+                // New product - create a copy to avoid modifying the original
+<span class="fc" id="L53">                Product productCopy = new Product(</span>
+<span class="fc" id="L54">                    product.getProductId(),</span>
+<span class="fc" id="L55">                    product.getProductDescription(),</span>
+<span class="fc" id="L56">                    product.getProductImageName(),</span>
+<span class="fc" id="L57">                    product.getUnitPrice(),</span>
+<span class="fc" id="L58">                    product.getStockQuantity()</span>
+                );
+<span class="fc" id="L60">                productCopy.setOrderedQuantity(product.getOrderedQuantity());</span>
+<span class="fc" id="L61">                mergedProducts.put(productId, productCopy);</span>
+            }
+<span class="fc" id="L63">        }</span>
+
+        // Step 2: Convert map values to list and sort by product ID
+<span class="fc" id="L66">        ArrayList&lt;Product&gt; mergedAndSorted = new ArrayList&lt;&gt;(mergedProducts.values());</span>
+<span class="fc" id="L67">        mergedAndSorted.sort(Comparator.comparing(Product::getProductId));</span>
+
+<span class="fc" id="L69">        return mergedAndSorted;</span>
+    }
+
+    /**
+     * Sorts products in the trolley by product ID without merging.
+     * Useful when products are already merged but need to be sorted.
+     * 
+     * @param trolley The list of products to sort
+     * @return A new sorted ArrayList (original list is not modified)
+     */
+    public static ArrayList&lt;Product&gt; sortByProductId(ArrayList&lt;Product&gt; trolley) {
+<span class="nc bnc" id="L80" title="All 4 branches missed.">        if (trolley == null || trolley.isEmpty()) {</span>
+<span class="nc" id="L81">            return new ArrayList&lt;&gt;();</span>
+        }
+
+<span class="nc" id="L84">        ArrayList&lt;Product&gt; sorted = new ArrayList&lt;&gt;(trolley);</span>
+<span class="nc" id="L85">        sorted.sort(Comparator.comparing(Product::getProductId));</span>
+<span class="nc" id="L86">        return sorted;</span>
+    }
+}
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

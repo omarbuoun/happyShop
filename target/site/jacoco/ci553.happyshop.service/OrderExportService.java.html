@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderExportService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">HappyShop</a> &gt; <a href="index.source.html" class="el_package">ci553.happyshop.service</a> &gt; <span class="el_source">OrderExportService.java</span></div><h1>OrderExportService.java</h1><pre class="source lang-java linenums">package ci553.happyshop.service;
+
+import ci553.happyshop.storageAccess.OrderFileManager;
+import ci553.happyshop.utility.StorageLocation;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+
+/**
+ * Service class for exporting order data to various formats.
+ * 
+ * Responsibilities:
+ * - Export order history to CSV format
+ * - Export order history to JSON format
+ * - Provide formatted export data
+ * 
+ * This service follows the Single Responsibility Principle by
+ * separating export operations from other business logic.
+ */
+<span class="nc" id="L28">public class OrderExportService {</span>
+    
+<span class="nc" id="L30">    private static final Path collectedPath = StorageLocation.collectedPath;</span>
+<span class="nc" id="L31">    private static final Path cancelledPath = StorageLocation.cancelledPath;</span>
+<span class="nc" id="L32">    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+
+    /**
+     * Exports order history to a CSV file.
+     * 
+     * @param outputPath The path where the CSV file should be saved
+     * @throws IOException if there's an error reading or writing files
+     */
+    public static void exportToCSV(String outputPath) throws IOException {
+<span class="nc" id="L41">        Path csvPath = Paths.get(outputPath);</span>
+        
+<span class="nc" id="L43">        try (BufferedWriter writer = Files.newBufferedWriter(csvPath)) {</span>
+            // Write CSV header
+<span class="nc" id="L45">            writer.write(&quot;Order ID,State,Ordered Date,Collected Date,Cancelled Date,Total&quot;);</span>
+<span class="nc" id="L46">            writer.newLine();</span>
+            
+            // Export collected orders
+<span class="nc" id="L49">            exportOrdersFromFolderToCSV(collectedPath, &quot;Collected&quot;, writer);</span>
+            
+            // Export cancelled orders
+<span class="nc" id="L52">            exportOrdersFromFolderToCSV(cancelledPath, &quot;Cancelled&quot;, writer);</span>
+        }
+        
+<span class="nc" id="L55">        System.out.println(&quot;Order history exported to CSV: &quot; + outputPath);</span>
+<span class="nc" id="L56">    }</span>
+
+    /**
+     * Exports orders from a specific folder to CSV format.
+     * 
+     * @param folderPath The folder containing order files
+     * @param state The state of orders in this folder
+     * @param writer The CSV writer
+     * @throws IOException if there's an error reading files
+     */
+    private static void exportOrdersFromFolderToCSV(Path folderPath, String state, BufferedWriter writer) throws IOException {
+<span class="nc bnc" id="L67" title="All 4 branches missed.">        if (!Files.exists(folderPath) || !Files.isDirectory(folderPath)) {</span>
+<span class="nc" id="L68">            return;</span>
+        }
+
+<span class="nc" id="L71">        try (Stream&lt;Path&gt; fileStream = Files.list(folderPath)) {</span>
+<span class="nc" id="L72">            List&lt;Path&gt; files = fileStream</span>
+<span class="nc" id="L73">                .filter(Files::isRegularFile)</span>
+<span class="nc" id="L74">                .filter(path -&gt; path.getFileName().toString().endsWith(&quot;.txt&quot;))</span>
+<span class="nc" id="L75">                .toList();</span>
+
+<span class="nc bnc" id="L77" title="All 2 branches missed.">            for (Path file : files) {</span>
+                try {
+<span class="nc" id="L79">                    String fileName = file.getFileName().toString();</span>
+<span class="nc" id="L80">                    int orderId = Integer.parseInt(fileName.substring(0, fileName.lastIndexOf('.')));</span>
+<span class="nc" id="L81">                    String orderContent = OrderFileManager.readOrderFile(folderPath, orderId);</span>
+<span class="nc" id="L82">                    writeOrderToCSV(orderId, state, orderContent, writer);</span>
+<span class="nc" id="L83">                } catch (Exception e) {</span>
+<span class="nc" id="L84">                    System.err.println(&quot;Error exporting order: &quot; + file + &quot; - &quot; + e.getMessage());</span>
+<span class="nc" id="L85">                }</span>
+<span class="nc" id="L86">            }</span>
+        }
+<span class="nc" id="L88">    }</span>
+
+    /**
+     * Writes a single order to CSV format.
+     * 
+     * @param orderId The order ID
+     * @param state The order state
+     * @param orderContent The order file content
+     * @param writer The CSV writer
+     * @throws IOException if there's an error writing
+     */
+    private static void writeOrderToCSV(int orderId, String state, String orderContent, BufferedWriter writer) throws IOException {
+<span class="nc" id="L100">        String[] lines = orderContent.split(&quot;\n&quot;);</span>
+<span class="nc" id="L101">        String orderedDate = &quot;&quot;;</span>
+<span class="nc" id="L102">        String collectedDate = &quot;&quot;;</span>
+<span class="nc" id="L103">        String cancelledDate = &quot;&quot;;</span>
+<span class="nc" id="L104">        double total = 0.0;</span>
+        
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        for (String line : lines) {</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">            if (line.startsWith(&quot;OrderedDateTime:&quot;)) {</span>
+<span class="nc" id="L108">                orderedDate = line.substring(&quot;OrderedDateTime:&quot;.length()).trim();</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            } else if (line.startsWith(&quot;CollectedDateTime:&quot;)) {</span>
+<span class="nc" id="L110">                collectedDate = line.substring(&quot;CollectedDateTime:&quot;.length()).trim();</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            } else if (line.startsWith(&quot;CancelledDateTime:&quot;)) {</span>
+<span class="nc" id="L112">                cancelledDate = line.substring(&quot;CancelledDateTime:&quot;.length()).trim();</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            } else if (line.startsWith(&quot;Total&quot;)) {</span>
+                try {
+<span class="nc" id="L115">                    String totalStr = line.substring(line.indexOf(&quot;£&quot;) + 1).trim();</span>
+<span class="nc" id="L116">                    total = Double.parseDouble(totalStr);</span>
+<span class="nc" id="L117">                } catch (Exception e) {</span>
+                    // If parsing fails, total remains 0.0
+<span class="nc" id="L119">                }</span>
+            }
+        }
+        
+        // Write CSV row
+<span class="nc" id="L124">        writer.write(String.format(&quot;%d,%s,%s,%s,%s,%.2f&quot;,</span>
+<span class="nc" id="L125">            orderId, state, orderedDate, collectedDate, cancelledDate, total));</span>
+<span class="nc" id="L126">        writer.newLine();</span>
+<span class="nc" id="L127">    }</span>
+
+    /**
+     * Exports order history to a JSON file.
+     * 
+     * @param outputPath The path where the JSON file should be saved
+     * @throws IOException if there's an error reading or writing files
+     */
+    public static void exportToJSON(String outputPath) throws IOException {
+<span class="nc" id="L136">        Path jsonPath = Paths.get(outputPath);</span>
+<span class="nc" id="L137">        ArrayList&lt;String&gt; history = OrderHistoryService.loadOrderHistory();</span>
+        
+<span class="nc" id="L139">        try (BufferedWriter writer = Files.newBufferedWriter(jsonPath)) {</span>
+<span class="nc" id="L140">            writer.write(&quot;{\n&quot;);</span>
+<span class="nc" id="L141">            writer.write(&quot;  \&quot;exportDate\&quot;: \&quot;&quot; + LocalDateTime.now().format(dateTimeFormatter) + &quot;\&quot;,\n&quot;);</span>
+<span class="nc" id="L142">            writer.write(&quot;  \&quot;totalOrders\&quot;: &quot; + history.size() + &quot;,\n&quot;);</span>
+<span class="nc" id="L143">            writer.write(&quot;  \&quot;orders\&quot;: [\n&quot;);</span>
+            
+<span class="nc bnc" id="L145" title="All 2 branches missed.">            for (int i = 0; i &lt; history.size(); i++) {</span>
+<span class="nc" id="L146">                writer.write(&quot;    \&quot;&quot; + history.get(i).replace(&quot;\&quot;&quot;, &quot;\\\&quot;&quot;) + &quot;\&quot;&quot;);</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">                if (i &lt; history.size() - 1) {</span>
+<span class="nc" id="L148">                    writer.write(&quot;,&quot;);</span>
+                }
+<span class="nc" id="L150">                writer.newLine();</span>
+            }
+            
+<span class="nc" id="L153">            writer.write(&quot;  ]\n&quot;);</span>
+<span class="nc" id="L154">            writer.write(&quot;}&quot;);</span>
+        }
+        
+<span class="nc" id="L157">        System.out.println(&quot;Order history exported to JSON: &quot; + outputPath);</span>
+<span class="nc" id="L158">    }</span>
+}
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
